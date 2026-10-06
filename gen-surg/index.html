@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>General surgery Anki deck · sam.med</title>
+<meta name="description" content="A free Anki deck for the general surgery rotation, made by a medical student.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&family=Young+Serif&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<div class="page">
+  <a class="back" href="../">sam.med</a>
+
+  <article class="sheet">
+    <div class="sheet-head">
+      <div class="art art-surg">
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="200" height="200" fill="#2E8B77"/>
+  <rect x="38" y="52" width="112" height="80" rx="9" fill="#1F6E5D" transform="rotate(-9 94 92)"/>
+  <rect x="42" y="56" width="112" height="80" rx="9" fill="#BFE6DA" transform="rotate(-3 98 96)"/>
+  <rect x="46" y="62" width="112" height="80" rx="9" fill="#FFFFFF"/>
+  <rect x="60" y="78" width="58" height="8" rx="4" fill="#1D2340"/>
+  <rect x="60" y="96" width="82" height="6" rx="3" fill="#B7BCCF"/>
+  <rect x="60" y="109" width="70" height="6" rx="3" fill="#B7BCCF"/>
+  <rect x="60" y="122" width="44" height="6" rx="3" fill="#B7BCCF"/>
+  <g transform="translate(116 152) rotate(-38)">
+    <rect x="0" y="-5.5" width="66" height="11" rx="3.5" fill="#D9DCE6"/>
+    <rect x="8" y="-2" width="40" height="4" rx="2" fill="#B7BCCF"/>
+    <path d="M1 -4.5 L-8 -4.5 C-28 -4.5 -40 -2 -44 5 L1 5 Z" fill="#F4F5F9" stroke="#1D2340" stroke-width="1.6" stroke-linejoin="round"/>
+  </g>
+</svg>
+      </div>
+      <h1>General surgery Anki deck</h1>
+    </div>
+
+    <!-- Edit this to describe your deck in your own words -->
+    <p class="lede">The deck I built and used through my general surgery rotation. Download it, import it into Anki, and change whatever you like.</p>
+
+    <!-- Fill these in (or leave as "" to hide one) -->
+    <dl class="facts" id="facts">
+      <div data-fact="cards"><dt>Cards</dt><dd></dd></div>
+      <div data-fact="updated"><dt>Last updated</dt><dd></dd></div>
+      <div data-fact="size"><dt>File size</dt><dd></dd></div>
+    </dl>
+
+    <!-- Put your exported deck at files/gen-surg.apkg (or change the path here) -->
+    <a class="download" href="../files/gen-surg.apkg" download>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+      Download deck (.apkg)
+    </a>
+
+    <h2>Getting it into Anki</h2>
+    <ol>
+      <li>Install Anki if you haven't: the desktop app is free at <a href="https://apps.ankiweb.net">apps.ankiweb.net</a>. On iPhone use AnkiMobile; on Android use AnkiDroid.</li>
+      <li>Download the deck using the button above.</li>
+      <li>On a computer, double-click the file or use File, then Import in Anki. On a phone, open the file and choose Anki when asked which app to use.</li>
+      <li>Sync with AnkiWeb if you want it on all your devices.</li>
+    </ol>
+
+    <h2>Before you study from it</h2>
+    <p class="note">This deck was written by a medical student while learning. It may contain mistakes or things that have changed since. Check anything important against current guidelines and your own course, and never use it to make decisions about a real patient.</p>
+
+    <h2>Sharing</h2>
+    <!-- Pick the licence you want; CC BY-NC-SA 4.0 is common for study decks -->
+    <p>You're welcome to share and adapt this deck for free, as long as you credit sam.med and don't sell it (<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>).</p>
+    <p>Found an error or have a suggestion? Email <a href="mailto:hello@sam.med">hello@sam.med</a>.</p>
+  </article>
+</div>
+
+<script>
+  // ---- Deck details: edit these ----
+  const DECK = {
+    cards: "",    // e.g. "1,240"
+    updated: "",  // e.g. "October 2026"
+    size: ""      // e.g. "8 MB"
+  };
+  // ----------------------------------
+  const facts = document.getElementById("facts");
+  let shown = 0;
+  facts.querySelectorAll("[data-fact]").forEach(el => {
+    const v = DECK[el.dataset.fact];
+    if (v) { el.querySelector("dd").textContent = v; shown++; }
+    else el.remove();
+  });
+  if (!shown) facts.remove();
+</script>
+</body>
+</html>

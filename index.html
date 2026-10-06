@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>sam.med</title>
+<meta name="description" content="Free, interactive things for medical students, made by Sam.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&family=Young+Serif&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="hero">
+  <h1 class="logo" aria-label="sam.med">
+    <span aria-hidden="true">sam.med</span>
+    <svg class="trace" viewBox="0 0 600 80" preserveAspectRatio="none" aria-hidden="true">
+      <path pathLength="1000" d="M0 52 H190 L204 52 L214 38 L226 52 L246 52 L256 60 L272 6 L288 74 L298 52 L326 52 L344 40 L368 52 H600"/>
+    </svg>
+  </h1>
+  <p class="tagline">Things I've made during med school, free for anyone to use. Pick one and have a go.</p>
+</header>
+
+<main>
+  <ul class="grid">
+
+    <li>
+      <a class="tile" href="gen-surg/">
+        <div class="art art-surg">
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="200" height="200" fill="#2E8B77"/>
+  <rect x="38" y="52" width="112" height="80" rx="9" fill="#1F6E5D" transform="rotate(-9 94 92)"/>
+  <rect x="42" y="56" width="112" height="80" rx="9" fill="#BFE6DA" transform="rotate(-3 98 96)"/>
+  <rect x="46" y="62" width="112" height="80" rx="9" fill="#FFFFFF"/>
+  <rect x="60" y="78" width="58" height="8" rx="4" fill="#1D2340"/>
+  <rect x="60" y="96" width="82" height="6" rx="3" fill="#B7BCCF"/>
+  <rect x="60" y="109" width="70" height="6" rx="3" fill="#B7BCCF"/>
+  <rect x="60" y="122" width="44" height="6" rx="3" fill="#B7BCCF"/>
+  <g transform="translate(116 152) rotate(-38)">
+    <rect x="0" y="-5.5" width="66" height="11" rx="3.5" fill="#D9DCE6"/>
+    <rect x="8" y="-2" width="40" height="4" rx="2" fill="#B7BCCF"/>
+    <path d="M1 -4.5 L-8 -4.5 C-28 -4.5 -40 -2 -44 5 L1 5 Z" fill="#F4F5F9" stroke="#1D2340" stroke-width="1.6" stroke-linejoin="round"/>
+  </g>
+</svg>
+        </div>
+        <h2>General surgery deck</h2>
+        <p>The Anki deck I built for my gen surg rotation.</p>
+      </a>
+    </li>
+
+    <!-- To add a new project: copy the <li> above, point href at its folder,
+         swap the art and words. Delete this placeholder once you have a few. -->
+    <li class="tile tile-soon">
+      <div class="art art-soon">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M40 104 H82 L90 104 L96 94 L102 104 L110 104 L116 112 L124 74 L132 126 L138 104 H160"
+                fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity=".35"/>
+        </svg>
+      </div>
+      <h2>More on the way</h2>
+      <p>The next one is still being built.</p>
+    </li>
+
+  </ul>
+</main>
+
+<footer class="site-foot">
+  <p>Made by Sam, a medical student. Everything here is a study aid, not medical advice.</p>
+  <!-- Swap in a real address before going live -->
+  <p>Spotted a mistake? <a href="mailto:hello@sam.med">hello@sam.med</a></p>
+</footer>
+
+</body>
+</html>
