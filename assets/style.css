@@ -147,6 +147,7 @@ a.tile:focus-visible .art svg { transform: rotate(-3deg) scale(1.04); }
 
 .art-surg { background: var(--scrubs); }
 .art-ing { background: #34407A; }
+.art-ct { background: #1E2A33; }
 .art-soon {
   border: 2px dashed var(--line);
   background: color-mix(in srgb, var(--panel) 60%, transparent);
