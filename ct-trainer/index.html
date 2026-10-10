@@ -1,0 +1,1211 @@
+<meta charset="utf-8">
+<title>CT Anatomy Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: reading-room console. Structures | 3D model | three linked CT planes.
+   Single dark theme on purpose: CT is read on black, and the overlay colours are tuned for it.
+   Plane colours follow 3D Slicer: axial red, sagittal yellow, coronal green. */
+:root {
+  --bg: #0d1113;
+  --panel: #141a1d;
+  --panel-2: #1b2226;
+  --line: #273035;
+  --fg: #dce3e6;
+  --muted: #84929a;
+  --accent: #f0b43c;
+  --ax: #e5584a;
+  --sag: #e3c444;
+  --cor: #5db55f;
+  --ok: #6cc77a;
+  --bad: #ef6b5e;
+  --display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 14px; line-height: 1.45; }
+* { box-sizing: border-box; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { display: flex; flex-direction: column; height: 100%; min-height: 0; padding-inline: 16px; padding-block: 10px 10px; gap: 10px; }
+
+/* header */
+.top { display: flex; align-items: center; gap: 14px 22px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brand h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: .01em; text-wrap: balance; }
+.brand span { color: var(--muted); font-size: 13px; }
+.tabs { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 2px; }
+.tabs button { border: 0; background: none; padding: 5px 12px; border-radius: 6px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; font-size: 13px; color: var(--muted); }
+.tabs button[aria-pressed="true"] { background: var(--panel-2); color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent); }
+.ctrls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+.ctrl { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-family: var(--display); font-weight: 600; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); padding: 4px 9px; font-size: 12.5px; color: var(--muted); font-family: var(--body); text-transform: none; letter-spacing: 0; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--fg); }
+
+/* main grid */
+.main { flex: 1; min-height: 0; display: grid; gap: 10px; grid-template-columns: 270px minmax(0, 1fr) minmax(0, 1.3fr); }
+.side { min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.three { position: relative; min-height: 0; background: radial-gradient(120% 90% at 50% 40%, #182024 0%, #0b0e10 70%); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.three canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.slices { min-height: 0; display: grid; gap: 10px; grid-template-columns: 1fr 1fr; grid-template-rows: 1.25fr 1fr; }
+.pane { position: relative; min-height: 0; min-width: 0; background: #000; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.pane.ax { grid-column: 1 / -1; }
+.pane.max { position: fixed; inset: 10px 16px; z-index: 20; }
+.pane header { display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 10px; background: #0c0f11; border-bottom: 1px solid var(--line); font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.pane header i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.pane.ax header i { background: var(--ax); } .pane.cor header i { background: var(--cor); } .pane.sag header i { background: var(--sag); }
+.pane header .pos { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--muted); letter-spacing: 0; text-transform: none; }
+.pane header button { border: 0; background: none; color: var(--muted); padding: 2px 4px; line-height: 1; font-size: 15px; }
+.pane header button:hover { color: var(--fg); }
+.pane .view { position: relative; flex: 1; min-height: 0; }
+.pane canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.pane input[type=range] { width: 100%; margin: 0; accent-color: var(--accent); height: 18px; background: #0c0f11; }
+.tip { position: absolute; pointer-events: none; padding: 3px 7px; border-radius: 5px; background: rgba(8,10,12,.88); border: 1px solid var(--line); font-size: 12.5px; white-space: nowrap; transform: translate(12px, -50%); z-index: 3; }
+.tip b { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+
+/* 3D overlays */
+.hud { position: absolute; left: 10px; top: 10px; right: 10px; display: flex; justify-content: space-between; gap: 8px; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+.level { background: rgba(10,13,15,.82); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.level .lv { font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1; color: var(--accent); }
+.level small { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; font-family: var(--display); font-weight: 600; }
+.opts3d { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.opts3d .seg button { background: rgba(20,26,29,.9); }
+.foot3d { position: absolute; left: 10px; bottom: 8px; right: 10px; color: var(--muted); font-size: 11.5px; pointer-events: none; display: flex; justify-content: space-between; gap: 10px; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 30; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.loading .bar { width: 220px; height: 3px; background: var(--line); margin-top: 10px; border-radius: 2px; overflow: hidden; }
+.loading .bar div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+
+/* side panel */
+.side .head { padding: 10px 12px 8px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.side h2 { margin: 0; font-family: var(--display); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.side input[type=search] { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
+.list { overflow: auto; flex: 1; min-height: 0; padding: 4px 0 10px; }
+.grp { margin-top: 6px; }
+.grp > .gh { display: flex; align-items: center; gap: 6px; padding: 4px 12px; position: sticky; top: 0; background: var(--panel); z-index: 1; }
+.gh button.gname { border: 0; background: none; padding: 0; font-family: var(--display); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 12px; color: var(--fg); text-align: left; flex: 1; }
+.gh .cnt { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.row { display: flex; align-items: center; gap: 8px; padding: 3px 10px 3px 14px; border-left: 2px solid transparent; }
+.row:hover { background: var(--panel-2); }
+.row.sel { background: var(--panel-2); border-left-color: var(--accent); }
+.row .chip { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.row button.nm { flex: 1; border: 0; background: none; text-align: left; padding: 1px 0; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row.off .nm, .row.off .chip { opacity: .35; }
+.eye { border: 0; background: none; padding: 2px; color: var(--muted); display: grid; place-items: center; }
+.eye:hover { color: var(--fg); }
+.eye svg { width: 15px; height: 15px; }
+
+/* levels + quiz panels share the side column */
+.pp { display: contents; }
+.pp[hidden], [hidden] { display: none !important; }
+.panel-body { overflow: auto; flex: 1; min-height: 0; padding: 10px 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.intro { color: var(--muted); font-size: 12.5px; margin: 0; }
+.lm { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 10px; display: grid; gap: 3px; }
+.lm:hover { border-color: #3a464d; }
+.lm.on { border-color: var(--accent); }
+.lm .t { font-family: var(--display); font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 7px; }
+.lm .t .chip { width: 10px; height: 10px; border-radius: 3px; }
+.lm dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; margin: 0; font-size: 12.5px; }
+.lm dt { color: var(--muted); }
+.lm dd { margin: 0; font-family: var(--mono); font-size: 12px; }
+.lm dd.this { color: var(--accent); }
+.lm p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+
+.quiz { display: flex; flex-direction: column; gap: 10px; }
+.quiz .q { font-family: var(--display); font-size: 20px; font-weight: 600; line-height: 1.2; text-wrap: balance; }
+.quiz .q em { font-style: normal; color: var(--accent); }
+.quiz .score { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.quiz .fb { font-size: 13.5px; min-height: 2.6em; }
+.quiz .fb.ok { color: var(--ok); } .quiz .fb.bad { color: var(--bad); }
+.choices { display: grid; gap: 6px; }
+.choices button, .qbtn { border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 7px 10px; text-align: left; font-size: 13.5px; }
+.choices button:hover, .qbtn:hover { border-color: #3a464d; }
+.choices button.right { border-color: var(--ok); color: var(--ok); }
+.choices button.wrong { border-color: var(--bad); color: var(--bad); }
+.qbtn.primary { background: var(--panel-2); border-color: var(--accent); text-align: center; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.qrow { display: flex; gap: 6px; }
+.qrow > * { flex: 1; }
+
+.status { display: flex; gap: 6px 18px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.status b { color: var(--fg); font-weight: 500; }
+.credit { color: var(--muted); font-size: 11.5px; }
+.credit a { color: var(--muted); }
+
+
+/* toolbar above the slices */
+.slicecol { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.slicecol .slices { flex: 1; }
+.toolbar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.planetabs { display: none; }
+.peek { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; padding: 4px 10px; font-size: 12.5px; color: var(--fg); user-select: none; -webkit-user-select: none; touch-action: none; }
+.peek[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.wlread { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.clearann { border: 0; background: none; color: var(--muted); font-size: 12px; text-decoration: underline; padding: 0; }
+
+/* structure card */
+.card { margin: 0 10px 8px; border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 10px 11px; display: grid; gap: 6px; max-height: 46%; overflow: auto; flex: none; }
+.card .ch { display: flex; align-items: center; gap: 8px; }
+.card .ch .chip { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.card h3 { margin: 0; font-family: var(--display); font-size: 17px; font-weight: 600; flex: 1; line-height: 1.15; }
+.card .x { border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1; padding: 0 2px; }
+.card dl { margin: 0; display: grid; gap: 5px; }
+.card dt { font-family: var(--display); font-weight: 600; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.card dd { margin: 0 0 2px; font-size: 13px; line-height: 1.4; }
+.card .note { font-size: 12.5px; color: var(--accent); }
+.listhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* learn panel */
+.learn { display: flex; flex-direction: column; gap: 10px; }
+.learn .stepn { font-family: var(--mono); font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.dots { display: flex; gap: 3px; flex-wrap: wrap; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); display: block; }
+.dots i.done { background: #6e5a2c; } .dots i.cur { background: var(--accent); }
+.learn h3 { margin: 0; font-family: var(--display); font-size: 21px; font-weight: 600; line-height: 1.15; text-wrap: balance; }
+.learn .body p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; }
+.learn .body b { color: var(--fg); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chips button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 2px 9px 2px 7px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; }
+.chips button i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.chips button:hover { border-color: #3a464d; }
+.weak { display: grid; gap: 4px; }
+.weak h4 { margin: 6px 0 0; font-family: var(--display); font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.quiz .why { font-size: 13px; color: var(--fg); line-height: 1.45; border-left: 2px solid var(--line); padding-left: 9px; }
+
+@media (max-width: 1280px) {
+  .main { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); grid-template-rows: minmax(0, 1fr) 230px; }
+  .main { grid-template-rows: minmax(0, 1fr) 300px; }
+  .side { grid-column: 1 / -1; grid-row: 2; }
+  .list { columns: 3 220px; }
+  .card { max-height: 40%; }
+  .grp { break-inside: avoid; }
+}
+@media (max-width: 820px) {
+  html, body { height: auto; }
+  .app { height: auto; }
+  .main { display: flex; flex-direction: column; }
+  .three { height: 78vw; max-height: 520px; }
+  .slices { grid-template-columns: 1fr; grid-template-rows: none; }
+  .pane .view { height: 92vw; flex: none; max-height: 640px; }
+  .planetabs { display: flex; }
+  .slices[data-show="ax"] .pane:not(.ax), .slices[data-show="cor"] .pane:not(.cor), .slices[data-show="sag"] .pane:not(.sag) { display: none; }
+  .slicecol { order: 1; } .three { order: 2; height: 70vw; }
+  .side { max-height: 80vh; order: 3; }
+  .main[data-mode="learn"] .side, .main[data-mode="quiz"] .side { order: 0; max-height: none; }
+  .opts3d .seg button { padding: 3px 6px; font-size: 11.5px; }
+  .level .lv { font-size: 20px; }
+  .status .hint, .foot3d span:first-child { display: none; }
+  .pane canvas { touch-action: pan-y; }
+  .list { columns: auto; }
+  .ctrls { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <div class="top">
+    <div class="brand"><h1>CT Anatomy Trainer</h1><span id="sub">Abdomen &amp; pelvis · portal venous phase</span></div>
+    <div class="tabs" role="group" aria-label="Mode">
+      <button id="m-learn" aria-pressed="true">Learn</button>
+      <button id="m-explore" aria-pressed="false">Explore</button>
+      <button id="m-levels" aria-pressed="false">Levels</button>
+      <button id="m-quiz" aria-pressed="false">Quiz</button>
+    </div>
+    <div class="ctrls">
+      <div class="ctrl">Window
+        <div class="seg" id="win">
+          <button data-w="400" data-l="40" aria-pressed="true" title="Key 1">Soft tissue</button>
+          <button data-w="160" data-l="70" aria-pressed="false" title="Key 2">Liver</button>
+          <button data-w="1800" data-l="400" aria-pressed="false" title="Key 3">Bone</button>
+          <button data-w="1500" data-l="-600" aria-pressed="false" title="Key 4">Lung</button>
+        </div>
+      </div>
+      <div class="ctrl">Labels
+        <div class="seg" id="ovl">
+          <button data-o="off" aria-pressed="true">Off</button>
+          <button data-o="outline" aria-pressed="false">Outline</button>
+          <button data-o="fill" aria-pressed="false">Fill</button>
+        </div>
+        <button class="peek" id="peek" aria-pressed="false" title="Hold to show every label (or hold Space)">Hold to peek</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <aside class="side" id="side">
+      <div id="p-learn" class="pp">
+        <div class="head"><h2>Guided tour</h2></div>
+        <div class="panel-body learn" id="learn"></div>
+      </div>
+      <div id="p-explore" class="pp" hidden>
+        <div class="head">
+          <div class="listhead"><h2>Structures</h2>
+            <div class="seg" id="tierlist"><button data-t="core" aria-pressed="true">Core</button><button data-t="all" aria-pressed="false">All</button></div>
+          </div>
+          <input type="search" id="q" placeholder="Find a structure…" autocomplete="off">
+        </div>
+        <div class="card" id="card" hidden></div>
+        <div class="list" id="list"></div>
+      </div>
+      <div id="p-levels" class="pp" hidden>
+        <div class="head"><h2>Vertebral levels</h2></div>
+        <div class="panel-body" id="lms">
+          <p class="intro">Each landmark is measured in this scan. Compare where it actually sits with the textbook level, then scroll the axial slice up and down through it.</p>
+        </div>
+      </div>
+      <div id="p-quiz" class="pp" hidden>
+        <div class="head"><h2>Quiz</h2>
+          <div class="seg" id="qmode">
+            <button data-q="find" aria-pressed="true">Find it</button>
+            <button data-q="name" aria-pressed="false">Name it</button>
+            <button data-q="level" aria-pressed="false">Level it</button>
+          </div>
+          <div class="seg" id="qtier">
+            <button data-t="core" aria-pressed="true">Core</button>
+            <button data-t="more" aria-pressed="false">More</button>
+            <button data-t="all" aria-pressed="false">Everything</button>
+          </div>
+        </div>
+        <div class="panel-body quiz" id="quiz"></div>
+      </div>
+    </aside>
+
+    <section class="three" id="three">
+      <div class="hud">
+        <div class="level" title="Vertebral level of the axial slice"><small>Axial level</small><div class="lv" id="lv">—</div></div>
+        <div class="opts3d">
+          <div class="seg" id="cut" title="Cut the model at a slice">
+            <button data-c="none" aria-pressed="false">Whole</button>
+            <button data-c="ax" aria-pressed="true">Cut axial</button>
+            <button data-c="cor" aria-pressed="false">Cut coronal</button>
+            <button data-c="sag" aria-pressed="false">Cut sagittal</button>
+          </div>
+          <div class="seg" id="vis3d">
+            <button data-v="Muscles" aria-pressed="false">Muscles</button>
+            <button data-v="Bones" aria-pressed="true">Bones</button>
+            <button data-v="Bowel" aria-pressed="false">Bowel</button>
+          </div>
+        </div>
+      </div>
+      <div class="foot3d"><span>Drag to rotate · scroll to zoom · click a structure to move the crosshair there</span><span id="hov3d"></span></div>
+      <div class="loading" id="loading"><div><div id="ltxt">Loading CT…</div><div class="bar"><div id="lbar"></div></div></div></div>
+    </section>
+
+    <section class="slicecol">
+    <div class="toolbar">
+      <div class="seg planetabs" id="planetabs" role="group" aria-label="Plane">
+        <button data-p="ax" aria-pressed="true">Axial</button><button data-p="cor" aria-pressed="false">Coronal</button><button data-p="sag" aria-pressed="false">Sagittal</button>
+      </div>
+      <div class="ctrl">Tool
+        <div class="seg" id="tool">
+          <button data-t="point" aria-pressed="true" title="Click or drag to move the crosshair">Crosshair</button>
+          <button data-t="wl" aria-pressed="false" title="Drag: left/right changes width, up/down changes level. Right-drag works with any tool.">Window/level</button>
+          <button data-t="ruler" aria-pressed="false" title="Drag to measure a distance">Ruler</button>
+          <button data-t="roi" aria-pressed="false" title="Drag a circle to measure mean HU">HU circle</button>
+        </div>
+      </div>
+      <button class="clearann" id="clearann" hidden>Clear measurements</button>
+      <span class="wlread" id="wlread"></span>
+    </div>
+    <section class="slices" data-show="ax">
+      <div class="pane ax" data-v="ax">
+        <header><i></i>Axial<span class="pos" id="pos-ax"></span><button data-max title="Enlarge">⤢</button></header>
+        <div class="view"><canvas></canvas><div class="tip" hidden></div></div>
+        <input type="range" id="r-ax" aria-label="Axial slice">
+      </div>
+      <div class="pane cor" data-v="cor">
+        <header><i></i>Coronal<span class="pos" id="pos-cor"></span><button data-max title="Enlarge">⤢</button></header>
+        <div class="view"><canvas></canvas><div class="tip" hidden></div></div>
+        <input type="range" id="r-cor" aria-label="Coronal slice">
+      </div>
+      <div class="pane sag" data-v="sag">
+        <header><i></i>Sagittal<span class="pos" id="pos-sag"></span><button data-max title="Enlarge">⤢</button></header>
+        <div class="view"><canvas></canvas><div class="tip" hidden></div></div>
+        <input type="range" id="r-sag" aria-label="Sagittal slice">
+      </div>
+    </section>
+    </section>
+  </div>
+
+  <div class="status" id="status"></div>
+  <div class="credit" id="credit">CT: Medical Segmentation Decathlon, Task 03 (liver), CC BY-SA 4.0. Labels: TotalSegmentator v2 (Wasserthal et al., 2023), generated automatically and not hand-corrected, so edges can be wrong. Abdominal wall muscles are only labelled from T4 to L4. The scan comes from a liver-tumour dataset, so the liver is not normal. For learning, not diagnosis.</div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const lbar = $('#lbar'), ltxt = $('#ltxt');
+
+/* ------------------------------------------------------------------ data */
+// the 3D mesh buffer ships as the pixels of a lossless greyscale PNG
+async function loadPngBytes(mp) {
+  ltxt.textContent = 'Loading 3D model…';
+  const res = await fetch(mp.file); if (!res.ok) throw new Error(`${mp.file}: ${res.status}`);
+  const bmp = await createImageBitmap(await res.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+  const cv = document.createElement('canvas'); cv.width = bmp.width; cv.height = bmp.height;
+  const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(bmp, 0, 0);
+  const px = cx.getImageData(0, 0, bmp.width, bmp.height).data, out = new Uint8Array(mp.bytes);
+  for (let n = 0; n < mp.bytes; n++) out[n] = px[n * 4];
+  lbar.style.width = '100%';
+  return out;
+}
+async function fetchBytes(url, label, share, base) {
+  ltxt.textContent = label;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  const buf = new Uint8Array(await res.arrayBuffer());
+  lbar.style.width = (base + share) + '%';
+  // some hosts already strip the gzip layer (Content-Encoding); only inflate if the magic bytes are there
+  if (buf[0] !== 0x1f || buf[1] !== 0x8b) return buf;
+  const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+let meta, CTV, LAB, NX, NY, NZ, SX, SY, SZ;
+// CT is shipped as WebP mosaics of axial slices (cols x rows per sheet); unpack into one Uint8 volume
+async function loadSheets(sh, share, base = 0, label = 'Loading CT volume…') {
+  const vol = new Uint8Array(NX * NY * NZ), per = sh.cols * sh.rows;
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
+  let done = 0;
+  ltxt.textContent = label;
+  await Promise.all(sh.files.map(async (f, si) => {
+    const res = await fetch(f); if (!res.ok) throw new Error(`${f}: ${res.status}`);
+    const bmp = await createImageBitmap(await res.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+    done++; lbar.style.width = (base + share * done / sh.files.length) + '%';
+    return { si, bmp };
+  })).then(list => {
+    for (const { si, bmp } of list) {
+      cv.width = bmp.width; cv.height = bmp.height; cx.drawImage(bmp, 0, 0);
+      const px = cx.getImageData(0, 0, bmp.width, bmp.height).data, W = bmp.width;
+      for (let n = 0; n < per; n++) {
+        const z = si * per + n; if (z >= NZ) break;
+        const r = Math.floor(n / sh.cols), c = n % sh.cols, base = z * NX * NY;
+        for (let y = 0; y < NY; y++) {
+          let q = ((r * NY + y) * W + c * NX) * 4, o = base + y * NX;
+          for (let x = 0; x < NX; x++, q += 4) vol[o + x] = px[q];
+        }
+      }
+      bmp.close?.();
+    }
+  });
+  return vol;
+}
+const S = {};              // structures by id
+let C = { cards: {}, pairs: {}, tour: [], tiers: { core: [], more: [] } };   // teaching content (content.json)
+const state = {
+  i: 0, j: 0, k: 0,        // crosshair voxel
+  W: 400, L: 40,
+  overlay: 'off',          // labels off by default: learn to read the grey scale, peek to check
+  peek: false,
+  sel: 0, hover: 0,
+  hidden: new Set(),       // structure ids hidden everywhere
+  focus: new Set(),        // Learn mode: structures this step is about
+  mode: 'learn',
+  cut: 'ax',
+  quiz: null,
+  only: 0,                 // quiz: show only this id's outline
+  tool: 'point',
+  listTier: 'core',
+};
+// per-viewer progress; storage can be missing or throw, so everything is optional
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('ctat.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('ctat.' + k, JSON.stringify(v)); } catch {} },
+};
+// 'kidney_left' -> 'kidney', 'vertebrae_L1' -> 'vertebra', 'rib_left_9' -> 'rib'
+function baseKey(key) {
+  if (key.startsWith('vertebrae_')) return 'vertebra';
+  if (key.startsWith('rib_')) return 'rib';
+  return key.replace(/_(left|right)$/, '');
+}
+function idsFor(k) { return Object.values(S).filter(s => s.key === k || baseKey(s.key) === k).map(s => s.id); }
+
+/* ------------------------------------------------------------------ lookup tables */
+const gray = new Uint8Array(256);
+const LR = new Uint8Array(256), LG = new Uint8Array(256), LB = new Uint8Array(256), LA = new Float32Array(256);
+function u8ToHU(v) {
+  const X = meta.hu_map.u8, Y = meta.hu_map.hu;
+  for (let s = 0; s < X.length - 1; s++) if (v <= X[s + 1]) return Y[s] + (v - X[s]) * (Y[s + 1] - Y[s]) / (X[s + 1] - X[s]);
+  return Y[Y.length - 1];
+}
+function buildGray() {
+  const lo = state.L - state.W / 2;
+  for (let v = 0; v < 256; v++) gray[v] = Math.max(0, Math.min(255, Math.round((u8ToHU(v) - lo) / state.W * 255)));
+}
+function hex(c) { const n = parseInt(c.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function quizHidden() { return state.mode === 'quiz' && state.quiz && !state.quiz.reveal && state.quiz.type !== 'name'; }
+function quizLocked() { return state.mode === 'quiz' && state.quiz && !state.quiz.reveal; }
+function peekOn() { return state.peek && !quizLocked(); }
+function buildLabelLUT() {
+  LA.fill(0);
+  for (const key in S) {
+    const id = +key, s = S[id], [r, g, b] = s.rgb;
+    LR[id] = r; LG[id] = g; LB[id] = b;
+    const shown = !state.hidden.has(id);
+    let a = 0;
+    if (quizHidden()) a = 0;
+    else if (state.only) a = id === state.only ? 1 : 0;
+    else if (peekOn()) a = shown ? 0.45 : 0;
+    else if (state.mode === 'learn' && state.focus.size) a = state.focus.has(id) ? 0.55 : (state.overlay !== 'off' && shown ? 0.15 : 0);
+    else if (state.overlay !== 'off' && shown) a = state.sel ? (id === state.sel ? 0.7 : 0.28) : 0.42;
+    else if (id === state.sel) a = 0.55;      // labels off: the structure you picked still shows
+    LA[id] = a;
+  }
+}
+
+/* ------------------------------------------------------------------ slice rendering */
+const views = {};
+function makeView(name) {
+  const pane = $(`.pane[data-v="${name}"]`);
+  const canvas = $('canvas', pane), ctx = canvas.getContext('2d');
+  const v = { name, pane, canvas, ctx, tip: $('.tip', pane), off: document.createElement('canvas'), zoom: 1, panX: 0, panY: 0 };
+  v.offctx = v.off.getContext('2d');
+  views[name] = v;
+  return v;
+}
+// per-view geometry: width/height in voxels and mm, and accessors
+function dimsOf(n) {
+  if (n === 'ax') return { w: NX, h: NY, mw: NX * SX, mh: NY * SY };
+  if (n === 'cor') return { w: NX, h: NZ, mw: NX * SX, mh: NZ * SZ };
+  return { w: NY, h: NZ, mw: NY * SY, mh: NZ * SZ };
+}
+// slice buffers
+let bufCT, bufLab;
+function extract(n) {
+  const { w, h } = dimsOf(n);
+  const ct = bufCT.subarray(0, w * h), lab = bufLab.subarray(0, w * h);
+  if (n === 'ax') {
+    const o = state.k * NX * NY;
+    ct.set(CTV.subarray(o, o + NX * NY)); lab.set(LAB.subarray(o, o + NX * NY));
+  } else if (n === 'cor') {
+    for (let r = 0; r < NZ; r++) { const z = NZ - 1 - r, o = NX * (state.j + NY * z); ct.set(CTV.subarray(o, o + NX), r * NX); lab.set(LAB.subarray(o, o + NX), r * NX); }
+  } else {
+    for (let r = 0; r < NZ; r++) { const z = NZ - 1 - r; for (let c = 0; c < NY; c++) { const o = state.i + NX * (c + NY * z); ct[r * NY + c] = CTV[o]; lab[r * NY + c] = LAB[o]; } }
+  }
+  return { w, h, ct, lab };
+}
+function compose(v) {
+  const { w, h, ct, lab } = extract(v.name);
+  if (v.off.width !== w || v.off.height !== h) { v.off.width = w; v.off.height = h; v.img = v.offctx.createImageData(w, h); }
+  const d = v.img.data, outline = (state.overlay === 'outline' && !peekOn() && !(state.mode === 'learn' && state.focus.size)) || state.only;
+  for (let y = 0, p = 0; y < h; y++) for (let x = 0; x < w; x++, p++) {
+    const g = gray[ct[p]], l = lab[p];
+    let r = g, gg = g, b = g;
+    if (l && LA[l] > 0) {
+      let a = LA[l], cr = LR[l], cg = LG[l], cb = LB[l];
+      if (outline) {
+        const edge = (x > 0 && lab[p - 1] !== l) || (x < w - 1 && lab[p + 1] !== l) || (y > 0 && lab[p - w] !== l) || (y < h - 1 && lab[p + w] !== l);
+        if (state.only) { cr = 240; cg = 180; cb = 60; a = edge ? 1 : 0.16; }
+        else a = edge ? 0.95 : (l === state.sel ? 0.3 : 0);
+      }
+      if (a) { r = g + (cr - g) * a; gg = g + (cg - g) * a; b = g + (cb - g) * a; }
+    }
+    const q = p * 4; d[q] = r; d[q + 1] = gg; d[q + 2] = b; d[q + 3] = 255;
+  }
+  v.offctx.putImageData(v.img, 0, 0);
+}
+function layout(v) {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const rect = v.canvas.getBoundingClientRect();
+  const cw = Math.max(1, Math.round(rect.width * dpr)), ch = Math.max(1, Math.round(rect.height * dpr));
+  if (v.canvas.width !== cw || v.canvas.height !== ch) { v.canvas.width = cw; v.canvas.height = ch; }
+  const { mw, mh } = dimsOf(v.name);
+  const s = Math.min(cw / mw, ch / mh) * 0.96 * v.zoom;
+  v.s = s; v.dpr = dpr;
+  v.ox = (cw - mw * s) / 2 + v.panX * dpr; v.oy = (ch - mh * s) / 2 + v.panY * dpr;
+  v.mw = mw; v.mh = mh;
+}
+const AX_COL = '#e5584a', SAG_COL = '#e3c444', COR_COL = '#5db55f';
+function draw(v) {
+  layout(v);
+  const { ctx, canvas, s, ox, oy, dpr } = v;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(v.off, ox, oy, v.mw * s, v.mh * s);
+  // crosshair
+  const C = cross(v);
+  const gap = 10 * dpr;
+  ctx.lineWidth = 1 * dpr; ctx.globalAlpha = 0.85;
+  const line = (x1, y1, x2, y2, col) => { ctx.strokeStyle = col; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+  const [vc, hc] = v.name === 'ax' ? [SAG_COL, COR_COL] : v.name === 'cor' ? [SAG_COL, AX_COL] : [COR_COL, AX_COL];
+  if (state.mode !== 'quiz' || state.quiz?.reveal) {
+    line(C.x, oy, C.x, C.y - gap, vc); line(C.x, C.y + gap, C.x, oy + v.mh * s, vc);
+    line(ox, C.y, C.x - gap, C.y, hc); line(C.x + gap, C.y, ox + v.mw * s, C.y, hc);
+  } else if (v.name !== 'ax') {
+    line(ox, C.y, ox + v.mw * s, C.y, AX_COL);
+  }
+  ctx.globalAlpha = 1;
+  // orientation letters
+  ctx.font = `600 ${12 * dpr}px "Barlow Semi Condensed", sans-serif`; ctx.fillStyle = 'rgba(220,227,230,.7)';
+  const [L, R, T, B] = v.name === 'ax' ? ['R', 'L', 'A', 'P'] : v.name === 'cor' ? ['R', 'L', 'S', 'I'] : ['A', 'P', 'S', 'I'];
+  const cw = canvas.width, chh = canvas.height;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(L, 6 * dpr, chh / 2);
+  ctx.textAlign = 'right'; ctx.fillText(R, cw - 6 * dpr, chh / 2);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(T, cw / 2, 5 * dpr);
+  ctx.textBaseline = 'bottom'; ctx.fillText(B, cw / 2, chh - 4 * dpr);
+  // vertebral level ruler on sagittal and coronal
+  if (v.name !== 'ax' && state.mode !== 'quiz') {
+    ctx.font = `600 ${11 * dpr}px "IBM Plex Mono", monospace`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const cur = baseLevel(meta.levels[state.k]);
+    let lastY = -1e9;
+    for (const [name, kc] of vertCenters) {
+      const y = oy + (NZ - 1 - kc + 0.5) * SZ * s;
+      if (y < oy || y > oy + v.mh * s || (Math.abs(y - lastY) < 12 * dpr && name !== cur)) continue;
+      lastY = y;
+      const on = name === cur;
+      ctx.fillStyle = on ? '#f0b43c' : 'rgba(220,227,230,.55)';
+      ctx.fillText(name, ox + 4 * dpr, y);
+    }
+  }
+  // window/level, as on a PACS
+  ctx.font = `500 ${11 * dpr}px "IBM Plex Mono", monospace`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillStyle = 'rgba(220,227,230,.6)';
+  ctx.fillText(`W ${Math.round(state.W)}  L ${Math.round(state.L)}`, 6 * dpr, chh - 4 * dpr);
+  drawAnn(v);
+  $('#pos-' + v.name).textContent = v.name === 'ax' ? `${state.k + 1}/${NZ}` : v.name === 'cor' ? `${state.j + 1}/${NY}` : `${state.i + 1}/${NX}`;
+}
+/* ---- measurements: one ruler and one HU circle per view, shown only on the slice they were made on */
+const sliceOf = n => n === 'ax' ? state.k : n === 'cor' ? state.j : state.i;
+const hsp = n => n === 'sag' ? SY : SX, vsp = n => n === 'ax' ? SY : SZ;
+function toMM(v, px, py) { return { u: (px - v.ox) / v.s, w: (py - v.oy) / v.s }; }
+function roiStats(v, a) {
+  const hs = hsp(v.name), vs = vsp(v.name), r = Math.hypot(a.b.u - a.a.u, a.b.w - a.a.w);
+  const { w: W, h: H } = dimsOf(v.name);
+  let n = 0, sum = 0, sq = 0;
+  const c0 = Math.max(0, Math.floor((a.a.u - r) / hs)), c1 = Math.min(W - 1, Math.ceil((a.a.u + r) / hs));
+  const r0 = Math.max(0, Math.floor((a.a.w - r) / vs)), r1 = Math.min(H - 1, Math.ceil((a.a.w + r) / vs));
+  for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) {
+    if (Math.hypot((col + .5) * hs - a.a.u, (row + .5) * vs - a.a.w) > r) continue;
+    const idx = v.name === 'ax' ? at(col, row, state.k) : v.name === 'cor' ? at(col, state.j, NZ - 1 - row) : at(state.i, col, NZ - 1 - row);
+    const hu = u8ToHU(CTV[idx]); n++; sum += hu; sq += hu * hu;
+  }
+  if (!n) return null;
+  const mean = sum / n; return { mean, sd: Math.sqrt(Math.max(0, sq / n - mean * mean)), area: n * hs * vs / 100 };
+}
+function drawAnn(v) {
+  const { ctx, s, ox, oy, dpr } = v;
+  for (const type of ['ruler', 'roi']) {
+    const a = v.ann?.[type]; if (!a || a.slice !== sliceOf(v.name)) continue;
+    const A = { x: ox + a.a.u * s, y: oy + a.a.w * s }, B = { x: ox + a.b.u * s, y: oy + a.b.w * s };
+    ctx.strokeStyle = '#7fd1ff'; ctx.fillStyle = '#7fd1ff'; ctx.lineWidth = 1.5 * dpr;
+    let label, lx, ly;
+    if (type === 'ruler') {
+      ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+      for (const P of [A, B]) { ctx.beginPath(); ctx.arc(P.x, P.y, 2.5 * dpr, 0, 7); ctx.fill(); }
+      label = `${Math.hypot(a.b.u - a.a.u, a.b.w - a.a.w).toFixed(1)} mm`; lx = B.x + 8 * dpr; ly = B.y;
+    } else {
+      const r = Math.hypot(B.x - A.x, B.y - A.y);
+      ctx.beginPath(); ctx.arc(A.x, A.y, r, 0, 7); ctx.stroke();
+      const st = roiStats(v, a);
+      label = st ? `mean ${Math.round(st.mean)} HU · SD ${Math.round(st.sd)} · ${st.area.toFixed(1)} cm²` : '';
+      lx = A.x + r + 8 * dpr; ly = A.y;
+    }
+    ctx.font = `500 ${11.5 * dpr}px "IBM Plex Mono", monospace`; ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(label).width;
+    ctx.textAlign = lx + tw > v.canvas.width - 6 * dpr ? 'right' : 'left';
+    if (ctx.textAlign === 'right') lx = (type === 'ruler' ? B.x : A.x - Math.hypot(B.x - A.x, B.y - A.y)) - 8 * dpr;
+    ctx.fillStyle = 'rgba(8,10,12,.8)';
+    ctx.fillRect(ctx.textAlign === 'left' ? lx - 3 * dpr : lx - tw - 3 * dpr, ly - 9 * dpr, tw + 6 * dpr, 18 * dpr);
+    ctx.fillStyle = '#7fd1ff'; ctx.fillText(label, lx, ly);
+  }
+}
+function cross(v) {
+  const { s, ox, oy } = v;
+  if (v.name === 'ax') return { x: ox + (state.i + .5) * SX * s, y: oy + (state.j + .5) * SY * s };
+  if (v.name === 'cor') return { x: ox + (state.i + .5) * SX * s, y: oy + (NZ - 1 - state.k + .5) * SZ * s };
+  return { x: ox + (state.j + .5) * SY * s, y: oy + (NZ - 1 - state.k + .5) * SZ * s };
+}
+// canvas px -> voxel (in the plane of the view)
+function toVoxel(v, px, py) {
+  const { s, ox, oy } = v;
+  const a = Math.floor((px - ox) / s / (v.name === 'sag' ? SY : SX));
+  const b = v.name === 'ax' ? Math.floor((py - oy) / s / SY) : NZ - 1 - Math.floor((py - oy) / s / SZ);
+  const cl = (x, n) => Math.max(0, Math.min(n - 1, x));
+  if (v.name === 'ax') return { i: cl(a, NX), j: cl(b, NY), k: state.k, inside: a >= 0 && a < NX && b >= 0 && b < NY };
+  if (v.name === 'cor') return { i: cl(a, NX), j: state.j, k: cl(b, NZ), inside: a >= 0 && a < NX && b >= 0 && b < NZ };
+  return { i: state.i, j: cl(a, NY), k: cl(b, NZ), inside: a >= 0 && a < NY && b >= 0 && b < NZ };
+}
+const at = (i, j, k) => i + NX * (j + NY * k);
+
+let dirty = { ax: true, cor: true, sag: true, three: true }, frameReq = 0;
+function invalidate(...names) { for (const n of (names.length ? names : ['ax', 'cor', 'sag'])) dirty[n] = true; dirty.three = true; if (!frameReq) frameReq = requestAnimationFrame(frame); }
+function frame() {
+  frameReq = 0;
+  for (const n of ['ax', 'cor', 'sag']) if (dirty[n]) { compose(views[n]); dirty[n] = 'drawn'; }
+  for (const n of ['ax', 'cor', 'sag']) { draw(views[n]); dirty[n] = false; }
+  updateThreePlanes();
+  updateStatus();
+  render3d();
+}
+
+/* ------------------------------------------------------------------ crosshair moves */
+function setCross(i, j, k, from) {
+  const ch = [];
+  if (i !== state.i) { state.i = i; ch.push('sag'); }
+  if (j !== state.j) { state.j = j; ch.push('cor'); }
+  if (k !== state.k) { state.k = k; ch.push('ax'); }
+  $('#r-ax').value = state.k; $('#r-cor').value = NY - 1 - state.j; $('#r-sag').value = state.i;
+  invalidate(...ch, 'ax', 'cor', 'sag');
+}
+function jumpTo(pmm) {
+  const i = Math.round(pmm[0] / SX), j = Math.round(pmm[1] / SY), k = Math.round(pmm[2] / SZ);
+  setCross(Math.max(0, Math.min(NX - 1, i)), Math.max(0, Math.min(NY - 1, j)), Math.max(0, Math.min(NZ - 1, k)));
+}
+
+function setWL(W, L, fromPreset) {
+  state.W = Math.max(1, Math.min(4000, W)); state.L = Math.max(-1200, Math.min(2000, L));
+  if (!fromPreset) $$('#win button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.w === Math.round(state.W) && +b.dataset.l === Math.round(state.L)));
+  buildGray(); invalidate();
+}
+let activeView = 'ax';
+function wireView(v) {
+  let dragging = false, panning = null, wl = null, annot = null;
+  const pt = e => { const r = v.canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * v.dpr, y: (e.clientY - r.top) * v.dpr, cx: e.clientX - r.left, cy: e.clientY - r.top }; };
+  v.canvas.addEventListener('pointerenter', () => { activeView = v.name; });
+  v.canvas.addEventListener('pointerdown', e => {
+    v.canvas.setPointerCapture(e.pointerId); activeView = v.name;
+    if (e.button === 1 || e.shiftKey) { panning = { x: e.clientX, y: e.clientY, px: v.panX, py: v.panY }; return; }
+    if (e.button === 2 || state.tool === 'wl') { wl = { x: e.clientX, y: e.clientY, W: state.W, L: state.L }; return; }
+    const p = pt(e), vx = toVoxel(v, p.x, p.y);
+    if (state.tool === 'ruler' || state.tool === 'roi') {
+      const m = toMM(v, p.x, p.y); v.ann ||= {};
+      annot = v.ann[state.tool] = { a: m, b: m, slice: sliceOf(v.name) };
+      $('#clearann').hidden = false; invalidate(); return;
+    }
+    if (state.mode === 'quiz' && state.quiz && !state.quiz.reveal) { if (vx.inside) quizClick(vx); return; }
+    dragging = true; setCross(vx.i, vx.j, vx.k);
+  });
+  v.canvas.addEventListener('pointermove', e => {
+    const p = pt(e);
+    if (panning) { v.panX = panning.px + e.clientX - panning.x; v.panY = panning.py + e.clientY - panning.y; invalidate(); return; }
+    if (wl) { setWL(wl.W + (e.clientX - wl.x) * 4, wl.L - (e.clientY - wl.y) * 2); return; }
+    if (annot) { annot.b = toMM(v, p.x, p.y); invalidate(); return; }
+    const vx = toVoxel(v, p.x, p.y);
+    if (dragging) setCross(vx.i, vx.j, vx.k);
+    const id = vx.inside ? LAB[at(vx.i, vx.j, vx.k)] : 0;
+    showTip(v, id, p.cx, p.cy);
+  });
+  v.canvas.addEventListener('pointerup', () => { dragging = false; panning = null; wl = null; annot = null; });
+  v.canvas.addEventListener('pointerleave', () => { v.tip.hidden = true; setHover(0); });
+  v.canvas.addEventListener('contextmenu', e => e.preventDefault());
+  v.canvas.addEventListener('dblclick', () => { v.zoom = 1; v.panX = v.panY = 0; invalidate(); });
+  v.canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) {
+      const p = pt(e), f = Math.exp(-e.deltaY * 0.0025), old = v.zoom;
+      v.zoom = Math.max(1, Math.min(8, v.zoom * f));
+      const r = v.canvas.getBoundingClientRect(), cx = p.cx - r.width / 2, cy = p.cy - r.height / 2;
+      v.panX = cx - (cx - v.panX) * v.zoom / old; v.panY = cy - (cy - v.panY) * v.zoom / old;
+      if (v.zoom === 1) v.panX = v.panY = 0;
+      invalidate(); return;
+    }
+    const step = (e.deltaY > 0 ? -1 : 1) * (e.shiftKey ? 5 : 1);
+    if (v.name === 'ax') setCross(state.i, state.j, clamp(state.k + step, NZ));
+    if (v.name === 'cor') setCross(state.i, clamp(state.j - step, NY), state.k);
+    if (v.name === 'sag') setCross(clamp(state.i + step, NX), state.j, state.k);
+  }, { passive: false });
+  $('[data-max]', v.pane).addEventListener('click', () => { v.pane.classList.toggle('max'); setTimeout(() => invalidate(), 0); });
+}
+const clamp = (x, n) => Math.max(0, Math.min(n - 1, x));
+function showTip(v, id, x, y) {
+  setHover(quizLocked() ? 0 : id);
+  if (!id || quizLocked()) { v.tip.hidden = true; return; }
+  const s = S[id];
+  v.tip.innerHTML = `<b style="background:${s.color}"></b>${s.name}`;
+  v.tip.style.left = x + 'px'; v.tip.style.top = y + 'px'; v.tip.hidden = false;
+  const w = v.tip.offsetWidth, W = v.canvas.clientWidth;
+  v.tip.style.transform = x + w + 20 > W ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)';
+}
+
+/* ------------------------------------------------------------------ 3D */
+let renderer, scene, camera, controls, group, planes = {}, marker, meshes = {}, raycaster = new THREE.Raycaster(), C3;
+const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+function toScene(X, Y, Z) { return new THREE.Vector3(X - C3.x, Z - C3.z, -(Y - C3.y)); }
+function initThree(meshBytes) {
+  const host = $('#three');
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.localClippingEnabled = true;
+  host.prepend(renderer.domElement);
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(32, 1, 5, 5000);
+  C3 = { x: NX * SX / 2, y: NY * SY / 2, z: NZ * SZ / 2 };
+  const dist = Math.max(NX * SX, NZ * SZ) * 2.15;
+  camera.position.set(-dist * 0.3, dist * 0.55, dist * 0.82);
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.12;
+  controls.addEventListener('change', () => render3d());
+  scene.add(new THREE.HemisphereLight(0xeef3ff, 0x2a2018, 1.4));
+  const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(0.4, 0.7, 1); camera.add(key); scene.add(camera);
+  group = new THREE.Group(); scene.add(group);
+
+  const buf = meshBytes.buffer, sc = meta.mesh_scale;
+  for (const m of meta.meshes) {
+    const s = S[m.id]; if (!s) continue;
+    const q = new Uint16Array(buf, meshBytes.byteOffset + m.off, m.nv * 3);
+    const pos = new Float32Array(m.nv * 3);
+    for (let n = 0; n < m.nv; n++) {
+      const X = q[3 * n] * sc + SX / 2, Y = q[3 * n + 1] * sc + SY / 2, Z = q[3 * n + 2] * sc + SZ / 2;
+      pos[3 * n] = X - C3.x; pos[3 * n + 1] = Z - C3.z; pos[3 * n + 2] = -(Y - C3.y);
+    }
+    const ioff = meshBytes.byteOffset + m.off + m.nv * 6;
+    const idx = m.it === 16 ? new Uint16Array(buf.slice(ioff, ioff + m.nf * 6)) : new Uint32Array(buf.slice(ioff, ioff + m.nf * 12));
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.computeVertexNormals();
+    const thorax = s.group === 'Thorax' && s.key.startsWith('lung');
+    const mat = new THREE.MeshStandardMaterial({ color: s.color, roughness: s.group === 'Bones' ? 0.75 : 0.5, metalness: 0,
+      transparent: thorax, opacity: thorax ? 0.22 : 1, depthWrite: !thorax, side: THREE.DoubleSide, clippingPlanes: [clipPlane] });
+    const mesh = new THREE.Mesh(g, mat);
+    mesh.userData.id = m.id; meshes[m.id] = mesh; group.add(mesh);
+  }
+  // slice planes, textured with the composed slices
+  for (const [n, col] of [['ax', AX_COL], ['cor', COR_COL], ['sag', SAG_COL]]) {
+    const { mw, mh } = dimsOf(n);
+    const tex = new THREE.CanvasTexture(views[n].off); tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true, opacity: 0.95, depthWrite: true });
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(mw, mh), mat);
+    const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(mw, mh)), new THREE.LineBasicMaterial({ color: col }));
+    pl.add(frame);
+    if (n === 'ax') pl.rotation.x = Math.PI / 2;
+    if (n === 'sag') pl.rotation.y = Math.PI / 2;
+    group.add(pl); planes[n] = { mesh: pl, tex };
+  }
+  marker = new THREE.Mesh(new THREE.SphereGeometry(3.2, 16, 12), new THREE.MeshBasicMaterial({ color: 0xf0b43c, depthTest: false }));
+  marker.renderOrder = 10; group.add(marker);
+
+  const ro = new ResizeObserver(() => { const r = host.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix(); render3d(); });
+  ro.observe(host);
+  // picking
+  const pick = e => {
+    const r = renderer.domElement.getBoundingClientRect();
+    raycaster.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), camera);
+    const hits = raycaster.intersectObjects(Object.values(meshes).filter(m => m.visible), false);
+    for (const h of hits) { if (!clipPlane || clipPlane.distanceToPoint(h.point) >= 0 || state.cut === 'none') return h; }
+    return null;
+  };
+  let down = null;
+  renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+  renderer.domElement.addEventListener('pointerup', e => {
+    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 4) return;
+    if (state.mode === 'quiz' && state.quiz && !state.quiz.reveal) return;
+    const h = pick(e); if (!h) return;
+    const p = h.point; jumpTo([p.x + C3.x - SX / 2, -p.z + C3.y - SY / 2, p.y + C3.z - SZ / 2]);
+    select(h.object.userData.id, false);
+  });
+  let pend = 0;
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (pend) return; pend = requestAnimationFrame(() => {
+      pend = 0;
+      if (state.mode === 'quiz' && state.quiz && !state.quiz.reveal) { $('#hov3d').textContent = ''; return; }
+      const h = pick(e); const id = h ? h.object.userData.id : 0;
+      $('#hov3d').textContent = id ? S[id].name : '';
+      setHover(id);
+    });
+  });
+  (function loop() { requestAnimationFrame(loop); if (controls.update()) render3d(); })();
+}
+// swing the camera round to face the cut face
+const VIEWS = { ax: [-0.3, 0.55, 0.82], cor: [-0.12, 0.18, 1], sag: [1, 0.2, 0.12], none: [-0.3, 0.3, 0.95] };
+function viewFor(c) {
+  const d = camera.position.distanceTo(controls.target), v = new THREE.Vector3(...VIEWS[c]).normalize().multiplyScalar(d);
+  const from = camera.position.clone(), t0 = performance.now(), dur = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450;
+  (function step(now) {
+    const f = dur ? Math.min(1, (now - t0) / dur) : 1, e = f * f * (3 - 2 * f);
+    camera.position.copy(from).lerp(v, e).setLength(d); controls.update(); render3d();
+    if (f < 1) requestAnimationFrame(step);
+  })(t0);
+}
+let r3 = 0;
+function render3d() { if (!renderer || r3) return; r3 = requestAnimationFrame(() => { r3 = 0; renderer.render(scene, camera); }); }
+function updateThreePlanes() {
+  if (!renderer) return;
+  const X = (state.i + .5) * SX, Y = (state.j + .5) * SY, Z = (state.k + .5) * SZ;
+  const P = planes;
+  P.ax.mesh.position.copy(toScene(NX * SX / 2, NY * SY / 2, Z));
+  P.cor.mesh.position.copy(toScene(NX * SX / 2, Y, NZ * SZ / 2));
+  P.sag.mesh.position.copy(toScene(X, NY * SY / 2, NZ * SZ / 2));
+  for (const n of ['ax', 'cor', 'sag']) { P[n].tex.needsUpdate = true; P[n].mesh.visible = state.cut === 'none' ? n === 'ax' : state.cut === n; }
+  P.ax.mesh.material.opacity = state.cut === 'none' ? 0.55 : 0.97;
+  marker.position.copy(toScene(X, Y, Z));
+  marker.visible = !(state.mode === 'quiz' && state.quiz && !state.quiz.reveal);
+  // clipping
+  if (state.cut === 'ax') { clipPlane.normal.set(0, -1, 0); clipPlane.constant = Z - C3.z + 0.01; }
+  else if (state.cut === 'cor') { clipPlane.normal.set(0, 0, -1); clipPlane.constant = -(Y - C3.y) + 0.01; }
+  else if (state.cut === 'sag') { clipPlane.normal.set(-1, 0, 0); clipPlane.constant = (X - C3.x) + 0.01; }   // keep the patient's right half, seen from the left like the 2D sagittal
+  else { clipPlane.normal.set(0, -1, 0); clipPlane.constant = 1e6; }
+  // highlight current vertebra and selection
+  const cur = baseLevel(meta.levels[state.k]);
+  for (const id in meshes) {
+    const m = meshes[id], s = S[id];
+    const hot = (+id === state.sel) || (+id === state.hover) || (state.only && +id === state.only && state.quiz?.reveal) || (state.mode === 'learn' && state.focus.has(+id));
+    const vert = s.key === 'vertebrae_' + cur && state.mode !== 'quiz';
+    m.material.emissive.set(hot ? 0x5a4a2a : vert ? 0x6a4300 : 0x000000);
+    m.visible = visible3d(s);
+  }
+  render3d();
+}
+const groupVis = { Muscles: false, Bones: true, Bowel: false };
+const BOWEL = new Set(['small_bowel', 'colon']);
+function visible3d(s) {
+  if (state.hidden.has(s.id)) return false;
+  if (state.sel === s.id || (state.mode === 'learn' && state.focus.has(s.id))) return true;
+  const g = BOWEL.has(s.key) ? 'Bowel' : s.group;
+  if (g in groupVis && !groupVis[g]) return false;
+  return true;
+}
+
+/* ------------------------------------------------------------------ status, levels */
+let vertCenters = [];
+function baseLevel(l) { if (!l) return ''; return l.includes('/') ? l.split('/')[0] : l; }
+function updateStatus() {
+  const hideQ = state.mode === 'quiz' && state.quiz && !state.quiz.reveal;
+  const lv = hideQ ? '?' : (meta.levels[state.k] || '—');
+  $('#lv').textContent = lv.replace(' disc', '');
+  $('#lv').title = lv;
+  const hu = Math.round(u8ToHU(CTV[at(state.i, state.j, state.k)]));
+  const id = LAB[at(state.i, state.j, state.k)];
+  const q = state.mode === 'quiz' && state.quiz && !state.quiz.reveal;
+  $('#status').innerHTML = `<span>Crosshair <b>${q ? '—' : (id ? S[id].name : 'unlabelled')}</b></span><span>Level <b>${lv}</b></span><span>HU ≈ <b>${hu}</b></span><span>Axial height <b>${(state.k * SZ).toFixed(0)} mm</b></span><span class="hint">Scroll or ↑↓ to move through slices · right-drag for window/level · Ctrl+scroll to zoom · Shift-drag to pan · double-click to reset · hold Space to peek</span>`;
+}
+function setHover(id) { if (id === state.hover) return; state.hover = id; updateThreePlanes(); }
+
+/* ------------------------------------------------------------------ structure list */
+const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6C3.7 8.5 2 12 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"/></svg>';
+const GROUPS = ['Organs', 'GI tract', 'Vessels', 'Muscles', 'Bones', 'Neural', 'Thorax'];
+const inTier = (s, t) => t === 'all' || (C.tiers.core.includes(baseKey(s.key)) || C.tiers.core.includes(s.key)) ||
+  (t === 'more' && (C.tiers.more.includes(baseKey(s.key)) || C.tiers.more.includes(s.key)));
+// pairs sit together, ordered top of the body to the bottom
+const topZ = {};
+function sortKey(s) { return -(topZ[baseKey(s.key) === 'vertebra' || baseKey(s.key) === 'rib' ? s.key : baseKey(s.key)] ?? s.z[1]); }
+function buildList() {
+  const list = $('#list'); list.innerHTML = '';
+  const filter = $('#q').value.trim().toLowerCase();
+  for (const g of GROUPS) {
+    const items = Object.values(S).filter(s => s.group === g && (filter ? s.name.toLowerCase().includes(filter) : inTier(s, state.listTier)))
+      .sort((a, b) => sortKey(a) - sortKey(b) || a.name.localeCompare(b.name));
+    if (!items.length) continue;
+    const el = document.createElement('div'); el.className = 'grp';
+    const allOff = items.every(s => state.hidden.has(s.id));
+    el.innerHTML = `<div class="gh"><button class="gname">${g}</button><span class="cnt">${items.length}</span><button class="eye" aria-label="Show or hide ${g}">${allOff ? EYE_OFF : EYE}</button></div>`;
+    const tog = () => { for (const s of items) allOff ? state.hidden.delete(s.id) : state.hidden.add(s.id); refreshLabels(); buildList(); };
+    $('.eye', el).onclick = tog; $('.gname', el).onclick = tog;
+    for (const s of items) {
+      const r = document.createElement('div');
+      r.className = 'row' + (state.hidden.has(s.id) ? ' off' : '') + (state.sel === s.id ? ' sel' : '');
+      r.innerHTML = `<span class="chip" style="background:${s.color}"></span><button class="nm" title="${s.name}">${s.name}</button><button class="eye" aria-label="Show or hide ${s.name}">${state.hidden.has(s.id) ? EYE_OFF : EYE}</button>`;
+      $('.nm', r).onclick = () => select(s.id, true);
+      $('.eye', r).onclick = () => { state.hidden.has(s.id) ? state.hidden.delete(s.id) : state.hidden.add(s.id); refreshLabels(); buildList(); };
+      el.append(r);
+    }
+    list.append(el);
+  }
+  if (!list.children.length) list.innerHTML = `<p class="intro" style="padding:8px 12px">No structure matches “${filter}”.</p>`;
+}
+function select(id, jump) {
+  state.sel = id;
+  if (jump && S[id]) jumpTo(S[id].point);
+  refreshLabels(); buildList(); renderCard();
+  const row = $('.row.sel'); if (row) row.scrollIntoView({ block: 'nearest' });
+}
+function renderCard() {
+  const box = $('#card'), s = S[state.sel];
+  if (!s) { box.hidden = true; return; }
+  const c = C.cards[baseKey(s.key)] || C.cards[s.key];
+  box.hidden = false;
+  box.innerHTML = `<div class="ch"><span class="chip" style="background:${s.color}"></span><h3>${s.name}</h3><button class="x" aria-label="Close">×</button></div>
+    ${c ? `<dl>${c.ct ? `<dt>On CT</dt><dd>${c.ct}</dd>` : ''}${c.rel ? `<dt>Relations</dt><dd>${c.rel}</dd>` : ''}${c.clin ? `<dt>Clinical</dt><dd>${c.clin}</dd>` : ''}${c.find ? `<dt>How to find it</dt><dd>${c.find}</dd>` : ''}</dl>${c.note ? `<p class="note">${c.note}</p>` : ''}`
+        : '<p class="intro">No notes for this structure yet.</p>'}`;
+  $('.x', box).onclick = () => { state.sel = 0; refreshLabels(); buildList(); renderCard(); };
+}
+function refreshLabels() { buildLabelLUT(); invalidate(); }
+
+/* ------------------------------------------------------------------ learn (guided tour) */
+let step = 0;
+function sliceCentroid(id, k) {
+  let n = 0, sx = 0, sy = 0; const o = k * NX * NY;
+  for (let y = 0; y < NY; y++) for (let x = 0; x < NX; x++) if (LAB[o + y * NX + x] === id) { n++; sx += x; sy += y; }
+  return n ? [sx / n * SX, sy / n * SY, k * SZ] : null;
+}
+function goPoint(g) {
+  if (g.landmark) { const L = meta.landmarks.find(l => l.title === g.landmark); if (L) return L.point; }
+  const s = Object.values(S).find(x => x.key === g.key) || S[idsFor(g.key)[0]];
+  if (!s) return null;
+  if (g.level) {
+    const ks = meta.levels.map((l, k) => l === g.level ? k : -1).filter(k => k >= 0);
+    if (ks.length) { const k = ks[Math.floor(ks.length / 2)]; return sliceCentroid(s.id, k) || [s.point[0], s.point[1], k * SZ]; }
+  }
+  return s.point;
+}
+function showStep(n) {
+  step = Math.max(0, Math.min(C.tour.length - 1, n)); store.set('step', step);
+  const st = C.tour[step];
+  state.sel = 0; state.focus = new Set((st.show || []).flatMap(idsFor));
+  const p = st.go && goPoint(st.go); if (p) jumpTo(p);
+  const box = $('#learn');
+  const chips = [...state.focus].map(id => S[id]);
+  box.innerHTML = `<div class="stepn"><span>${step + 1} / ${C.tour.length}</span><div class="dots">${C.tour.map((_, i) => `<i class="${i < step ? 'done' : i === step ? 'cur' : ''}"></i>`).join('')}</div></div>
+    <h3>${st.title}</h3><div class="body">${st.body}</div>
+    ${chips.length ? `<div class="chips">${chips.map(s => `<button data-id="${s.id}"><i style="background:${s.color}"></i>${s.name}</button>`).join('')}</div>` : ''}
+    <div class="qrow"><button class="qbtn" id="prev" ${step === 0 ? 'disabled' : ''}>Back</button>
+    ${st.final ? '<button class="qbtn primary" id="toquiz">Start the quiz</button>' : '<button class="qbtn primary" id="next">Next</button>'}</div>`;
+  $$('.chips button', box).forEach(b => b.onclick = () => jumpTo(S[+b.dataset.id].point));
+  $('#prev').onclick = () => showStep(step - 1);
+  if ($('#next')) $('#next').onclick = () => showStep(step + 1);
+  if ($('#toquiz')) $('#toquiz').onclick = () => { store.set('toured', true); setMode('quiz'); };
+  if (st.final) store.set('toured', true);
+  refreshLabels();
+}
+
+/* ------------------------------------------------------------------ levels panel */
+function buildLevels() {
+  const box = $('#lms');
+  for (const L of meta.landmarks) {
+    const s = S[Object.keys(S).find(id => S[id].key === L.key)];
+    const b = document.createElement('button'); b.className = 'lm';
+    b.innerHTML = `<span class="t"><span class="chip" style="background:${s?.color || '#888'}"></span>${L.title}</span>
+      <dl><dt>This scan</dt><dd class="this">${L.level}</dd><dt>Textbook</dt><dd>${L.textbook}</dd></dl><p>${L.note}</p>`;
+    b.onclick = () => { $$('.lm').forEach(x => x.classList.remove('on')); b.classList.add('on'); if (s) state.sel = s.id; jumpTo(L.point); refreshLabels(); };
+    box.append(b);
+  }
+}
+
+/* ------------------------------------------------------------------ quiz */
+let qtype = 'find', qtier = 'core';
+const score = { right: 0, total: 0 };
+const stats = store.get('stats', {});      // key -> { r, w }
+function record(key, ok) { const s = stats[key] ||= { r: 0, w: 0 }; ok ? s.r++ : s.w++; store.set('stats', stats); }
+const ORDER = ['T9', 'T10', 'T11', 'T12', 'L1', 'L2', 'L3', 'L4', 'L5', 'S1'];
+function quizPool() {
+  return Object.values(S).filter(s => !s.key.startsWith('rib_') && s.key !== 'costal_cartilages' && s.key !== 'sternum' && s.vox > 300 &&
+    !(s.key.startsWith('vertebrae_') && !/T12|L\d|S1/.test(s.key)) && inTier(s, qtier));
+}
+// weighted pick: structures you keep missing come back more often
+function pickWeighted(pool, keyOf) {
+  const w = pool.map(x => { const st = stats[keyOf(x)]; return st ? Math.max(0.4, 1 + 2 * st.w - 0.5 * st.r) : 1.5; });
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let n = 0; n < pool.length; n++) { r -= w[n]; if (r <= 0) return pool[n]; }
+  return pool[pool.length - 1];
+}
+const pairKey = (a, b) => [baseKey(a), baseKey(b)].sort().join('|');
+function whyText(target, picked) {
+  if (picked && picked !== target) {
+    const a = S[target].key, b = S[picked].key;
+    if (baseKey(a) === baseKey(b) && baseKey(a) !== 'vertebra') return "Right structure, wrong side. Remember: the patient's right is on your left in the axial and coronal views.";
+    if (baseKey(a) === 'vertebra' && baseKey(b) === 'vertebra') return C.cards.vertebra.rel;
+    const t = C.pairs[pairKey(a, b)]; if (t) return t;
+  }
+  const c = C.cards[baseKey(S[target].key)]; return c ? c.find : '';
+}
+function newQuestion() {
+  state.sel = 0; state.only = 0; state.tool = 'point';
+  $$('#tool button').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === 'point'));
+  if (qtype === 'level') return newLevelQuestion();
+  const pool = quizPool();
+  const t = pickWeighted(pool, s => s.key);
+  state.quiz = { target: t.id, reveal: false, tries: 0, type: qtype };
+  if (qtype === 'find') {
+    // put the axial slice through the structure, but keep the crosshair away from it
+    jumpTo([NX * SX / 2, NY * SY / 2, t.point[2]]);
+    renderQuiz(`Find the <em>${t.name}</em>`, 'Click it on any slice. Scroll to move through the stack. Labels stay hidden until you answer.');
+  } else {
+    state.only = t.id;
+    jumpTo(t.point);
+    // distractors: commonly confused structures first, then the other side, then the same group
+    const all = quizPool().length > 6 ? quizPool() : Object.values(S);
+    const conf = all.filter(s => s.id !== t.id && C.pairs[pairKey(t.key, s.key)]);
+    const side = all.filter(s => s.id !== t.id && baseKey(s.key) === baseKey(t.key) && baseKey(s.key) !== 'vertebra');
+    const same = all.filter(s => s.id !== t.id && s.group === t.group);
+    const opts = [t];
+    for (const src of [conf, side, same, all]) {
+      const shuffled = src.slice().sort(() => Math.random() - 0.5);
+      for (const c of shuffled) { if (opts.length >= 4) break; if (!opts.some(o => o.id === c.id || o.name === c.name)) opts.push(c); }
+    }
+    opts.sort(() => Math.random() - 0.5);
+    renderQuiz('Name the outlined structure', 'Scroll up and down: the outline follows it through the stack.', opts.map(o => ({ id: o.id, label: o.name })));
+  }
+  refreshLabels();
+}
+function newLevelQuestion() {
+  const ks = meta.levels.map((l, k) => ORDER.includes(l) ? k : -1).filter(k => k >= 0);
+  const byLevel = {}; for (const k of ks) (byLevel[meta.levels[k]] ||= []).push(k);
+  const levels = Object.keys(byLevel);
+  const lv = pickWeighted(levels, l => 'level_' + l);
+  const k = byLevel[lv][Math.floor(byLevel[lv].length / 2)];
+  const vid = idsFor('vertebrae_' + lv)[0];
+  const p = vid ? sliceCentroid(vid, k) : null;
+  jumpTo(p || [NX * SX / 2, NY * SY / 2, k * SZ]);
+  state.quiz = { target: vid, level: lv, reveal: false, tries: 0, type: 'level' };
+  const i = ORDER.indexOf(lv);
+  const near = [i - 2, i - 1, i + 1, i + 2].filter(x => x >= 0 && x < ORDER.length && levels.includes(ORDER[x])).sort(() => Math.random() - 0.5).slice(0, 3);
+  const opts = [lv, ...near.map(x => ORDER[x])].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+  renderQuiz('Which vertebral level is the axial slice at?', 'Use the sagittal view and count. The axial slice is the red line.', opts.map(o => ({ id: o, label: o })));
+  refreshLabels();
+}
+function weakList() {
+  const rows = Object.entries(stats).filter(([, v]) => v.w > v.r).sort((a, b) => (b[1].w - b[1].r) - (a[1].w - a[1].r)).slice(0, 5);
+  if (!rows.length) return '';
+  const name = k => k.startsWith('level_') ? `Level ${k.slice(6)}` : (Object.values(S).find(s => s.key === k)?.name || k);
+  return `<div class="weak"><h4>Needs work</h4><div class="chips">${rows.map(([k, v]) => `<button data-k="${k}"><i style="background:var(--bad)"></i>${name(k)} · ${v.r}/${v.r + v.w}</button>`).join('')}</div></div>`;
+}
+function renderQuiz(q, help, opts) {
+  const box = $('#quiz');
+  box.innerHTML = `<div class="score">This session ${score.right} / ${score.total}</div><div class="q">${q}</div>
+    ${help ? `<p class="intro">${help}</p>` : ''}
+    ${opts ? `<div class="choices">${opts.map(o => `<button data-id="${o.id}">${o.label}</button>`).join('')}</div>` : ''}
+    <div class="fb" id="fb"></div><div class="why" id="why" hidden></div>
+    <div class="qrow"><button class="qbtn" id="qskip">Show answer</button><button class="qbtn primary" id="qnext">Next</button></div>
+    ${weakList()}`;
+  $('#qnext').onclick = newQuestion;
+  $('#qskip').onclick = () => reveal(false, 'Here it is.');
+  $$('.weak button', box).forEach(b => b.onclick = () => {
+    const k = b.dataset.k; if (k.startsWith('level_')) return;
+    const s = Object.values(S).find(x => x.key === k); if (!s) return;
+    setMode('explore'); select(s.id, true);
+  });
+  if (opts) $$('.choices button', box).forEach(b => b.onclick = () => {
+    if (state.quiz.reveal) return;
+    const Q = state.quiz;
+    const ok = Q.type === 'level' ? b.dataset.id === Q.level : +b.dataset.id === Q.target;
+    b.classList.add(ok ? 'right' : 'wrong');
+    if (!ok) $(`.choices button[data-id="${Q.type === 'level' ? Q.level : Q.target}"]`).classList.add('right');
+    if (Q.type === 'level') return reveal(ok, ok ? `Correct: ${Q.level}.` : `It's ${Q.level}.`);
+    reveal(ok, ok ? 'Correct.' : `It's the ${S[Q.target].name}.`, ok ? 0 : +b.dataset.id);
+  });
+}
+function quizClick(vx) {
+  const id = LAB[at(vx.i, vx.j, vx.k)], t = state.quiz.target;
+  setCross(vx.i, vx.j, vx.k);
+  if (state.quiz.type !== 'find') return;
+  if (id === t) return reveal(true, `Correct: ${S[t].name}.`);
+  state.quiz.tries++;
+  const msg = id ? `That's the ${S[id].name}.` : 'That point is not one of the labelled structures.';
+  if (state.quiz.tries >= 3) return reveal(false, `${msg} The answer is now outlined.`, id);
+  const fb = $('#fb'); fb.className = 'fb bad'; fb.textContent = `${msg} Try again (${3 - state.quiz.tries} left).`;
+  const why = $('#why'), w = id ? whyText(t, id) : ''; why.hidden = !w; why.textContent = w;
+}
+function reveal(ok, msg, picked = 0) {
+  const Q = state.quiz; if (!Q || Q.reveal) return;
+  Q.reveal = true; score.total++; if (ok) score.right++;
+  record(Q.type === 'level' ? 'level_' + Q.level : S[Q.target].key, ok);
+  const t = Q.target;
+  if (t) { state.only = t; if (Q.type === 'find') jumpTo(S[t].point); }
+  const fb = $('#fb'); fb.className = 'fb ' + (ok ? 'ok' : 'bad'); fb.textContent = msg;
+  const why = $('#why'), w = Q.type === 'level' ? C.cards.vertebra.rel : whyText(t, picked);
+  why.hidden = !w; why.textContent = w;
+  $('.score').textContent = `This session ${score.right} / ${score.total}`;
+  refreshLabels();
+}
+
+/* ------------------------------------------------------------------ modes & controls */
+function setMode(m) {
+  state.mode = m; $('.main').dataset.mode = m;
+  for (const x of ['learn', 'explore', 'levels', 'quiz']) { $('#m-' + x).setAttribute('aria-pressed', x === m); $('#p-' + x).hidden = x !== m; }
+  state.quiz = null; state.only = 0;
+  if (m !== 'learn') state.focus = new Set();
+  if (m === 'quiz') newQuestion();
+  else if (m === 'learn') showStep(step);
+  else { renderCard(); refreshLabels(); }
+}
+function segGroup(sel, cb) {
+  $$(sel + ' button').forEach(b => b.addEventListener('click', () => { $$(sel + ' button').forEach(x => x.setAttribute('aria-pressed', x === b)); cb(b.dataset); }));
+}
+function setPeek(on) { if (state.peek === on) return; state.peek = on; $('#peek').setAttribute('aria-pressed', on); refreshLabels(); }
+function setOverlay(o) { state.overlay = o; $$('#ovl button').forEach(b => b.setAttribute('aria-pressed', b.dataset.o === o)); refreshLabels(); }
+function stepSlice(n, d) {
+  if (n === 'ax') setCross(state.i, state.j, clamp(state.k + d, NZ));
+  if (n === 'cor') setCross(state.i, clamp(state.j - d, NY), state.k);
+  if (n === 'sag') setCross(clamp(state.i + d, NX), state.j, state.k);
+}
+function wireControls() {
+  for (const m of ['learn', 'explore', 'levels', 'quiz']) $('#m-' + m).onclick = () => setMode(m);
+  segGroup('#win', d => setWL(+d.w, +d.l, true));
+  segGroup('#ovl', d => setOverlay(d.o));
+  segGroup('#cut', d => { state.cut = d.c; invalidate(); viewFor(d.c); });
+  segGroup('#qmode', d => { qtype = d.q; $('#qtier').hidden = qtype === 'level'; newQuestion(); });
+  segGroup('#qtier', d => { qtier = d.t; newQuestion(); });
+  segGroup('#tierlist', d => { state.listTier = d.t; buildList(); });
+  segGroup('#tool', d => { state.tool = d.t; });
+  segGroup('#planetabs', d => { $('.slices').dataset.show = d.p; activeView = d.p; setTimeout(() => invalidate(), 0); });
+  $('#clearann').onclick = () => { for (const n in views) views[n].ann = {}; $('#clearann').hidden = true; invalidate(); };
+  const pk = $('#peek');
+  pk.addEventListener('pointerdown', e => { pk.setPointerCapture(e.pointerId); setPeek(true); });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) pk.addEventListener(ev, () => setPeek(false));
+  pk.addEventListener('contextmenu', e => e.preventDefault());
+  $$('#vis3d button').forEach(b => b.addEventListener('click', () => { const g = b.dataset.v; groupVis[g] = !groupVis[g]; b.setAttribute('aria-pressed', groupVis[g]); invalidate(); }));
+  $('#q').addEventListener('input', buildList);
+  const r = (id, n, cb) => { const el = $(id); el.min = 0; el.max = n - 1; el.addEventListener('input', () => cb(+el.value)); };
+  r('#r-ax', NZ, v => setCross(state.i, state.j, v));
+  r('#r-cor', NY, v => setCross(state.i, NY - 1 - v, state.k));
+  r('#r-sag', NX, v => setCross(v, state.j, state.k));
+  addEventListener('keydown', e => {
+    if (e.target.matches('input[type=search]')) return;
+    const big = e.shiftKey ? 5 : 1;
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); stepSlice(activeView, (e.key === 'ArrowUp' ? 1 : -1) * big); }
+    else if (e.key === 'PageUp' || e.key === 'PageDown') { e.preventDefault(); stepSlice(activeView, (e.key === 'PageUp' ? 10 : -10)); }
+    else if (e.key === ' ' && !e.target.closest('button')) { e.preventDefault(); if (!e.repeat) setPeek(true); }
+    else if (/^[1-4]$/.test(e.key)) $$('#win button')[+e.key - 1].click();
+    else if (e.key === 'l' || e.key === 'L') setOverlay({ off: 'outline', outline: 'fill', fill: 'off' }[state.overlay]);
+    else if (state.mode === 'learn' && e.key === 'ArrowRight') showStep(step + 1);
+    else if (state.mode === 'learn' && e.key === 'ArrowLeft') showStep(step - 1);
+    else if (e.key === 'Escape') { $$('.pane.max').forEach(p => p.classList.remove('max')); state.sel = 0; refreshLabels(); buildList(); renderCard(); }
+  });
+  addEventListener('keyup', e => { if (e.key === ' ') setPeek(false); });
+  addEventListener('blur', () => setPeek(false));
+  new ResizeObserver(() => invalidate()).observe($('.slices'));
+}
+
+/* ------------------------------------------------------------------ boot */
+(async function boot() {
+  try {
+    ltxt.textContent = 'Loading…';
+    meta = await (await fetch('meta.json')).json();
+    try { C = await (await fetch('content.json')).json(); } catch (e) { console.warn('content.json missing', e); }
+    [NX, NY, NZ] = meta.dims; [SX, SY, SZ] = meta.spacing;
+    for (const s of meta.structures) {
+      s.rgb = hex(s.color); S[s.id] = s;
+      const b = ['vertebra', 'rib'].includes(baseKey(s.key)) ? s.key : baseKey(s.key);
+      topZ[b] = Math.max(topZ[b] ?? -1, s.z[1] + (b.startsWith('rib_') ? 0 : 0));
+    }
+    CTV = await loadSheets(meta.ct_sheets, 70);
+    LAB = await loadSheets(meta.label_sheets, 10, 70, 'Loading labels…');
+    const meshBytes = await loadPngBytes(meta.mesh_png);
+    bufCT = new Uint8Array(Math.max(NX, NY) * Math.max(NY, NZ) * 2); bufLab = new Uint8Array(bufCT.length);
+    // vertebra centres for the level ruler
+    const runs = {};
+    meta.levels.forEach((l, k) => { if (l && !l.includes('disc')) (runs[l] ||= []).push(k); });
+    vertCenters = Object.entries(runs).map(([n, ks]) => [n, ks.reduce((a, b) => a + b, 0) / ks.length]);
+    ['ax', 'cor', 'sag'].forEach(n => wireView(makeView(n)));
+    buildGray(); buildLabelLUT();
+    // start on the pancreas (transpyloric plane) if present
+    const start = Object.values(S).find(s => s.key === 'pancreas') || Object.values(S)[0];
+    state.i = Math.round(start.point[0] / SX); state.j = Math.round(start.point[1] / SY); state.k = Math.round(start.point[2] / SZ);
+    for (const n of ['ax', 'cor', 'sag']) compose(views[n]);
+    initThree(meshBytes);
+    wireControls(); buildList(); buildLevels();
+    setCross(state.i, state.j, state.k);
+    step = store.get('step', 0);
+    $('#loading').remove();
+    setMode(store.get('toured', false) ? 'explore' : 'learn');
+  } catch (err) {
+    ltxt.textContent = 'Could not load the scan: ' + err.message;
+    console.error(err);
+  }
+})();
+</script>

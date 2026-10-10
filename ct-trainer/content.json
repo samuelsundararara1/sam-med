@@ -1,0 +1,278 @@
+{
+  "tiers": {
+    "core": ["liver", "gallbladder", "spleen", "pancreas", "kidney", "stomach", "duodenum", "small_bowel", "colon", "urinary_bladder", "aorta", "inferior_vena_cava", "portal_vein_and_splenic_vein", "iliopsoas", "esophagus"],
+    "more": ["adrenal_gland", "iliac_artery", "iliac_vena", "prostate", "quadratus_lumborum", "autochthon", "rectus_abdominis", "sacrum", "hip", "femur", "spinal_cord", "vertebrae_T12", "vertebrae_L1", "vertebrae_L2", "vertebrae_L3", "vertebrae_L4", "vertebrae_L5"]
+  },
+
+  "cards": {
+    "liver": {
+      "ct": "Largest solid organ, in the right upper quadrant. On portal venous phase it enhances evenly, with branching portal and hepatic veins inside it. This patient's liver has lesions, because the scan comes from a liver-tumour dataset.",
+      "rel": "Diaphragm above. Gallbladder on its inferior surface. The IVC runs in a groove on its back. Right kidney and hepatic flexure of the colon below.",
+      "clin": "Liver metastases and primary tumours, cirrhosis (small nodular liver with a relatively large caudate lobe), fatty liver (low density).",
+      "find": "At the top of the abdomen, the large even organ on the left of your screen (the patient's right)."
+    },
+    "gallbladder": {
+      "ct": "Pear-shaped, thin-walled sac of near-water-density bile (about 0–20 HU) under the liver.",
+      "rel": "Sits in the gallbladder fossa on the underside of the liver. The duodenum and hepatic flexure lie close by.",
+      "clin": "Many gallstones are invisible on CT because they have the same density as bile. Wall thickening and fat stranding around it suggest cholecystitis; ultrasound is the first test.",
+      "find": "Follow the underside of the liver for a low-density oval."
+    },
+    "spleen": {
+      "ct": "Crescent of even soft tissue in the left upper quadrant. It can look stripy in the arterial phase but is uniform by portal venous phase.",
+      "rel": "Under the left 9th–11th ribs. Stomach in front of it, left kidney below and medial, and the tail of the pancreas reaching its hilum.",
+      "clin": "The organ most often injured in blunt abdominal trauma. Left lower rib fractures should make you look at it.",
+      "find": "Back of the left upper abdomen, tucked against the ribs (right of your screen)."
+    },
+    "pancreas": {
+      "ct": "Lobulated soft tissue lying across the spine. Fat often separates its lobules in older patients.",
+      "rel": "Head inside the duodenal C-loop; neck in front of the portal–splenic confluence; body over the aorta; tail towards the splenic hilum. The splenic vein runs along its back.",
+      "clin": "Pancreatitis (swelling with fat stranding around it) and pancreatic adenocarcinoma (a low-density mass, often with a dilated duct).",
+      "find": "Find the splenic vein running across the upper abdomen. The pancreas is the tissue just in front of it."
+    },
+    "kidney": {
+      "ct": "Bean-shaped organs with a brightly enhancing cortex. By portal venous phase the medulla has filled in. Fat sits in the renal sinus at the hilum.",
+      "rel": "Retroperitoneal, lying on psoas and quadratus lumborum, with the adrenal above. The right kidney usually sits a little lower because of the liver.",
+      "clin": "Stones (best seen on non-contrast CT), hydronephrosis, and renal masses. Simple cysts are very common incidental findings.",
+      "find": "Back of the abdomen, either side of the spine, at about L1–L3."
+    },
+    "adrenal_gland": {
+      "ct": "Thin Y-, V- or λ-shaped limbs only a few millimetres thick. Zoom in with Ctrl+scroll.",
+      "rel": "Above and medial to the upper pole of each kidney. The right adrenal lies directly behind the IVC; the left lies beside the aorta and the left crus of the diaphragm.",
+      "clin": "Adrenal nodules turn up on a few percent of abdominal CTs. A nodule under 10 HU on a non-contrast scan is very likely a benign adenoma.",
+      "find": "Scroll just above the kidneys. Look straight behind the IVC on the right, and beside the aorta on the left."
+    },
+    "stomach": {
+      "ct": "Thick-walled bag with folds (rugae), containing air, fluid or food. How it looks depends on how full it is.",
+      "rel": "Left upper quadrant, continuous with the oesophagus. Spleen behind and to the side; pancreas behind it across the lesser sac; transverse colon below.",
+      "clin": "A wall that stays thick when the stomach is distended can be tumour. Free gas nearby suggests a perforated ulcer.",
+      "find": "Follow the oesophagus down through the diaphragm into it."
+    },
+    "duodenum": {
+      "ct": "A tube with a soft-tissue wall, often holding fluid or gas, curving around the head of the pancreas.",
+      "rel": "D1 leaves the pylorus; D2 runs down beside the pancreatic head (where the ampulla opens); D3 crosses between the aorta and the SMA at about L3; D4 rises to the duodenojejunal flexure.",
+      "clin": "A posterior D1 ulcer can erode the gastroduodenal artery and bleed heavily. D3 can be squeezed between the aorta and SMA (SMA syndrome).",
+      "find": "Look for the C-shaped loop wrapped around the pancreatic head."
+    },
+    "small_bowel": {
+      "ct": "Central loops of narrower bowel. Jejunum (upper left) has feathery folds; ileum (lower right) looks smoother.",
+      "rel": "Hangs from the mesentery in the middle of the abdomen, framed by the colon.",
+      "clin": "Loops dilated beyond about 3 cm with a change in calibre (a transition point) suggest small-bowel obstruction.",
+      "find": "The central coil of tubes in the mid-abdomen."
+    },
+    "colon": {
+      "ct": "Wider bowel around the edge of the abdomen holding mottled stool and gas, with haustral folds.",
+      "rel": "Caecum in the right iliac fossa, then ascending colon (right), hepatic flexure, transverse colon (front, below the stomach), splenic flexure (high on the left), descending colon (left), sigmoid, and rectum behind the bladder.",
+      "clin": "Diverticulitis (usually sigmoid), colorectal cancer, large-bowel obstruction. A caecum wider than about 9 cm is at risk of perforating.",
+      "find": "Trace the stool-filled tube around the edges of the abdomen. The coronal view shows the frame best."
+    },
+    "esophagus": {
+      "ct": "A collapsed muscular tube, sometimes with a little air in it.",
+      "rel": "Behind the heart, then passes through the diaphragm at about T10, in front of the aorta, to join the stomach.",
+      "clin": "Hiatus hernia shows as stomach above the diaphragm.",
+      "find": "In the lowest chest slices, the small tube in front of the aorta."
+    },
+    "urinary_bladder": {
+      "ct": "Midline sac of fluid density (close to 0 HU) in the pelvis. The wall is thin when it is full.",
+      "rel": "Behind the pubic symphysis. Prostate below it in a male; rectum behind it (with the uterus and vagina in between in a female).",
+      "clin": "Wall thickening, stones and tumours. The ureters enter at the back corners (vesicoureteric junctions), a common place for stones to stick.",
+      "find": "Scroll down into the pelvis: the round fluid density just behind the pubic bones."
+    },
+    "prostate": {
+      "ct": "Rounded soft tissue under the bladder base. CT cannot show its internal zones well.",
+      "rel": "Behind the pubic symphysis, in front of the rectum.",
+      "clin": "An enlarged gland pushes up into the bladder base. Prostate cancer is staged with MRI, not CT.",
+      "find": "Just below the bladder, between the pubic symphysis and the rectum."
+    },
+    "aorta": {
+      "ct": "Round, brightly enhancing artery. The wall is often calcified in older patients. A normal abdominal aorta is under 3 cm across.",
+      "rel": "Lies on the front of the vertebral bodies, just left of the midline. Enters the abdomen through the aortic hiatus at T12 and divides into the common iliac arteries at about L4.",
+      "clin": "Abdominal aortic aneurysm is a diameter of 3 cm or more. Measure it outer wall to outer wall with the ruler tool.",
+      "find": "The bright round circle in front of the spine, slightly to the patient's left (your right)."
+    },
+    "inferior_vena_cava": {
+      "ct": "Oval or flattened vein to the right of the aorta. It can look patchy where unenhanced blood from the legs mixes with enhanced blood from the kidneys.",
+      "rel": "Formed at about L5 by the two common iliac veins, it runs up behind the liver and through the diaphragm at T8.",
+      "clin": "A flat, slit-like IVC suggests hypovolaemia. IVC filters are placed below the renal veins.",
+      "find": "Right of the aorta, in front of the right side of the spine (your left)."
+    },
+    "portal_vein_and_splenic_vein": {
+      "ct": "Tubular veins that enhance on portal venous phase. In this scan one label covers both the portal vein and the splenic vein.",
+      "rel": "The splenic vein runs along the back of the pancreas and joins the superior mesenteric vein behind the pancreatic neck to form the portal vein, which runs up to the liver hilum.",
+      "clin": "Portal vein thrombosis; a widened portal vein and varices in portal hypertension.",
+      "find": "Follow the tube behind the pancreas towards the liver hilum."
+    },
+    "iliac_artery": {
+      "ct": "Rounded arteries diverging from the aortic bifurcation, often with calcified walls.",
+      "rel": "Run down and outwards over psoas, then divide into internal and external iliac arteries at the pelvic brim, in front of the sacroiliac joint.",
+      "clin": "Aortic aneurysms can extend into them. Heavy calcification here matters for catheter access.",
+      "find": "Scroll just below the aortic bifurcation (about L4)."
+    },
+    "iliac_vena": {
+      "ct": "Wider, flatter veins lying behind and medial to the arteries.",
+      "rel": "Join at about L5 to form the IVC, behind the right common iliac artery. The left common iliac vein crosses behind the right common iliac artery to get there.",
+      "clin": "May–Thurner syndrome: the left common iliac vein squeezed between the right common iliac artery and the spine, a cause of left-leg DVT.",
+      "find": "Behind the common iliac arteries, just below where the IVC starts."
+    },
+    "iliopsoas": {
+      "ct": "Muscle either side of the lumbar vertebral bodies, getting bigger as it goes down. Iliacus joins it in the iliac fossa.",
+      "rel": "The kidneys lie on it and the ureters cross in front of it. It passes under the inguinal ligament to the lesser trochanter of the femur.",
+      "clin": "Psoas abscess; psoas haematoma in patients on anticoagulants.",
+      "find": "Hugging the sides of the lumbar vertebral bodies."
+    },
+    "quadratus_lumborum": {
+      "ct": "Flat muscle behind the kidney.",
+      "rel": "Lateral to psoas, running between the 12th rib and the iliac crest.",
+      "clin": "Landmark for the quadratus lumborum regional anaesthetic block.",
+      "find": "Behind the kidney, outside psoas.",
+      "note": "Only labelled from T4 to L4 in this scan (a limit of the labelling model). The muscle continues down to the iliac crest."
+    },
+    "autochthon": {
+      "ct": "Large muscle masses filling the gutters either side of the spinous processes.",
+      "rel": "Behind the transverse processes and laminae, under the thoracolumbar fascia.",
+      "clin": "Muscle area at L3 is used to measure sarcopenia, which predicts surgical outcomes.",
+      "find": "The muscle at the back of the slice, either side of the spine."
+    },
+    "rectus_abdominis": {
+      "ct": "Paired strap muscles either side of the midline (linea alba) at the front.",
+      "rel": "Wrapped in the rectus sheath. The inferior epigastric vessels run behind its lower part.",
+      "clin": "Divarication of the recti; rectus sheath haematoma.",
+      "find": "Front of the abdomen, either side of the midline.",
+      "note": "Only labelled from T4 to L4 in this scan (a limit of the labelling model). The muscle continues down to the pubis."
+    },
+    "external_oblique": {
+      "ct": "Outermost layer of the lateral abdominal wall.",
+      "rel": "Internal oblique lies just deep to it, and transversus abdominis (not labelled here) is deepest.",
+      "clin": "Spigelian hernias come through the layers at the outer edge of rectus.",
+      "find": "The outer layer of the side wall.",
+      "note": "Only labelled from T4 to L4 in this scan (a limit of the labelling model)."
+    },
+    "internal_oblique": {
+      "ct": "Middle layer of the lateral abdominal wall.",
+      "rel": "Between external oblique (outside) and transversus abdominis (inside, not labelled here).",
+      "clin": "Its lower fibres form part of the conjoint tendon in the inguinal canal.",
+      "find": "Just deep to external oblique on the side wall.",
+      "note": "Only labelled from T4 to L4 in this scan (a limit of the labelling model)."
+    },
+    "latissimus_dorsi": {
+      "ct": "Broad flat muscle wrapping the back and side of the lower chest.",
+      "rel": "Superficial to the lower ribs, from the thoracolumbar fascia up to the humerus.",
+      "clin": "Used as a flap in reconstructive surgery.",
+      "find": "The thin outer muscle at the back and sides of the upper slices.",
+      "note": "Only labelled from T4 to L4 in this scan (a limit of the labelling model)."
+    },
+    "gluteus_maximus": { "ct": "The largest buttock muscle.", "rel": "Most superficial, behind the hip joint.", "clin": "Site of intramuscular injections (upper outer quadrant).", "find": "The bulky muscle at the back of the pelvis." },
+    "gluteus_medius": { "ct": "Fan-shaped muscle on the outer surface of the ilium.", "rel": "Deep to gluteus maximus, above gluteus minimus.", "clin": "Weakness causes a Trendelenburg gait.", "find": "On the outer wing of the iliac bone." },
+    "gluteus_minimus": { "ct": "Smallest gluteal muscle.", "rel": "Deep to gluteus medius, on the ilium.", "clin": "Works with medius to stabilise the pelvis.", "find": "Directly on the ilium, under gluteus medius." },
+    "heart": { "ct": "Only the lower heart is in this scan.", "rel": "Sits on the diaphragm, in front of the oesophagus.", "clin": "A pericardial effusion may show at the edge of an abdominal CT.", "find": "Top of the scan, front and left." },
+    "lung": { "ct": "Only the lung bases are in this scan. Use the lung window.", "rel": "The costodiaphragmatic recesses reach down behind the liver and spleen.", "clin": "Check the lung bases on every abdominal CT for nodules, consolidation and effusions.", "find": "Top slices, at the back." },
+    "spinal_cord": { "ct": "Soft tissue inside the bony canal.", "rel": "In adults the cord ends at about L1–L2; below that the canal holds the cauda equina.", "clin": "CT shows the canal poorly. MRI is used for cord compression.", "find": "Inside the vertebral canal." },
+    "vertebra": {
+      "ct": "Bone with a dense cortical rim. The body is in front; the pedicles, laminae and spinous process ring the canal behind.",
+      "rel": "Count up from the sacrum (S1 is the top sacral segment, L5 the lowest mobile vertebra) or down from the vertebra carrying the 12th rib (T12).",
+      "clin": "Compression fractures, metastases and degenerative change. The vertebral level tells you where you are.",
+      "find": "Use the sagittal view and count."
+    },
+    "sacrum": { "ct": "Five fused vertebrae forming the back of the pelvis.", "rel": "Joins the hip bones at the sacroiliac joints.", "clin": "Insufficiency fractures in older patients.", "find": "Back of the pelvis, below L5." },
+    "hip": { "ct": "Ilium, ischium and pubis fused into one bone.", "rel": "The acetabulum holds the femoral head.", "clin": "Pelvic ring fractures are often in two places.", "find": "The bony ring of the pelvis." },
+    "femur": { "ct": "The femoral head and neck appear at the bottom of the scan.", "rel": "Head sits in the acetabulum.", "clin": "Neck of femur fractures; avascular necrosis.", "find": "Bottom slices, either side." },
+    "rib": { "ct": "Curved bones round the lower chest.", "rel": "The 11th and 12th ribs are floating ribs.", "clin": "Lower rib fractures raise suspicion of liver, spleen or kidney injury.", "find": "Around the edge of the upper slices." },
+    "sternum": { "ct": "Front of the chest.", "rel": "The xiphoid process is at about T9.", "clin": "", "find": "Top slices, front midline." },
+    "costal_cartilages": { "ct": "Cartilage joining the ribs to the sternum; it often calcifies with age.", "rel": "Forms the costal margin.", "clin": "", "find": "Front of the lower chest wall." }
+  },
+
+  "pairs": {
+    "aorta|inferior_vena_cava": "The aorta is round, sits just left of midline on the front of the spine and often has calcified walls. The IVC lies to the right, is flatter or oval, and disappears into the liver as you scroll up.",
+    "duodenum|pancreas": "The duodenum is a tube: look for a wall, fluid or gas inside, and continuity with the stomach as you scroll. The pancreatic head is solid lobulated tissue sitting inside the duodenal C-loop.",
+    "adrenal_gland|kidney": "The adrenal is a thin Y- or λ-shaped limb above and medial to the kidney's upper pole. The kidney is a bean with a brightly enhancing cortex.",
+    "adrenal_gland|inferior_vena_cava": "The right adrenal sits directly behind the IVC. The IVC is the large oval vein; the adrenal is the thin limb just behind it.",
+    "iliopsoas|quadratus_lumborum": "Psoas hugs the side of the vertebral bodies. Quadratus lumborum is further back and outside it, behind the kidney.",
+    "autochthon|quadratus_lumborum": "Erector spinae fills the gutters beside the spinous processes. Quadratus lumborum is further out, lateral to it and to psoas.",
+    "autochthon|iliopsoas": "Psoas is in front of the transverse processes, beside the vertebral bodies. Erector spinae is behind them, beside the spinous processes.",
+    "colon|small_bowel": "Small-bowel loops are central and narrower, with fluid and feathery folds. The colon frames the abdomen, is wider, and holds mottled stool and gas.",
+    "colon|stomach": "The stomach is in the left upper quadrant, continuous with the oesophagus, with thick folds. The transverse colon hangs below it and holds mottled stool.",
+    "colon|urinary_bladder": "The bladder is in front, in the midline, and uniformly fluid. The rectum and sigmoid sit behind it with gas and stool.",
+    "pancreas|portal_vein_and_splenic_vein": "The splenic vein is the tube running along the back of the pancreas. The pancreas is the solid tissue in front of it.",
+    "gallbladder|duodenum": "The gallbladder is a smooth, thin-walled oval of bile under the liver. The duodenum is a tube with a thicker wall, often with gas, continuous with the stomach.",
+    "iliac_artery|iliac_vena": "The arteries are smaller, rounder, often calcified, and usually in front. The veins are wider and flatter, behind and medial.",
+    "prostate|urinary_bladder": "The bladder is fluid density. The prostate is solid soft tissue below the bladder base.",
+    "esophagus|aorta": "The aorta is round and bright with contrast. The oesophagus is a collapsed tube in front of it, sometimes with a little air.",
+    "duodenum|stomach": "The stomach is the large bag in the left upper quadrant. The duodenum starts at the pylorus and curves down around the pancreatic head.",
+    "duodenum|small_bowel": "The duodenum is fixed in a C around the pancreatic head. The rest of the small bowel hangs free in the middle of the abdomen.",
+    "liver|spleen": "Remember the orientation: the liver is on the patient's right (your left), the spleen on the patient's left (your right).",
+    "external_oblique|internal_oblique": "External oblique is the outermost layer of the side wall. Internal oblique is just deep to it.",
+    "rectus_abdominis|external_oblique": "Rectus is the strap either side of the midline at the front. The obliques form the side walls."
+  },
+
+  "tour": [
+    {
+      "title": "How to look at a CT slice",
+      "body": "<p>Imagine standing at the foot of the bed looking up at a patient lying on their back. That is the axial view.</p><p>So the patient's <b>right is on your left</b>, and the front of the body is at the top of the image.</p><p>Scroll with your mouse wheel (or the slider) to move up and down through the body. Hover over anything to see its name.</p>",
+      "go": { "key": "pancreas" }, "show": []
+    },
+    {
+      "title": "Three planes, one point",
+      "body": "<p>The other two views show the same point from the front (<b>coronal</b>) and from the side (<b>sagittal</b>). The coloured lines show where the planes cross.</p><p>Click or drag anywhere in one view and the other two follow. The 3D model on the left shows where the axial slice cuts through the body.</p>",
+      "go": { "key": "pancreas" }, "show": []
+    },
+    {
+      "title": "Start with the spine",
+      "body": "<p>The vertebral body is your anchor. Find it in the middle at the back, then the spinal canal behind it and psoas on either side.</p><p>The readout at the top of the 3D view gives the vertebral level. The coronal and sagittal views show the level of each vertebra down their left edge.</p>",
+      "go": { "key": "vertebrae_L1" }, "show": ["vertebrae_L1", "spinal_cord", "iliopsoas"]
+    },
+    {
+      "title": "The two great vessels",
+      "body": "<p>The <b>aorta</b> is round and bright, sitting on the front of the spine slightly to the patient's left.</p><p>The <b>IVC</b> is to the right, flatter and oval.</p><p>Scroll up and watch the IVC disappear into the liver, while the aorta stays behind the diaphragm.</p>",
+      "go": { "key": "aorta", "level": "L2" }, "show": ["aorta", "inferior_vena_cava"]
+    },
+    {
+      "title": "Liver, gallbladder, right kidney",
+      "body": "<p>The <b>liver</b> fills the right upper quadrant. The <b>gallbladder</b> is the low-density oval of bile on its underside.</p><p>The <b>right kidney</b> sits behind, with its bright cortex.</p><p>This patient's liver has lesions, so it looks less even than a normal liver.</p>",
+      "go": { "key": "gallbladder" }, "show": ["liver", "gallbladder", "kidney_right"]
+    },
+    {
+      "title": "Left upper quadrant",
+      "body": "<p>The <b>spleen</b> is a crescent at the back on the patient's left, under the ribs.</p><p>The <b>stomach</b> lies in front of it, holding air and fluid. The <b>left kidney</b> is below and medial.</p>",
+      "go": { "key": "spleen" }, "show": ["spleen", "stomach", "kidney_left"]
+    },
+    {
+      "title": "Pancreas and the splenic vein",
+      "body": "<p>The <b>pancreas</b> lies across the spine. The easiest way to find it is the <b>splenic vein</b>, which runs along its back.</p><p>Follow the pancreas from the head (on the patient's right, inside the duodenal C-loop) to the tail (towards the spleen).</p>",
+      "go": { "key": "pancreas" }, "show": ["pancreas", "portal_vein_and_splenic_vein"]
+    },
+    {
+      "title": "The duodenum",
+      "body": "<p>The <b>duodenum</b> curves in a C around the pancreatic head.</p><p>Scroll down to see the third part crossing in front of the aorta and IVC at about L3. The SMA (not labelled here) passes in front of it.</p>",
+      "go": { "key": "duodenum" }, "show": ["duodenum", "pancreas", "aorta", "inferior_vena_cava"]
+    },
+    {
+      "title": "The adrenal glands",
+      "body": "<p>The adrenals are thin limbs a few millimetres thick, above the kidneys.</p><p>The <b>right adrenal</b> sits directly behind the IVC. The <b>left</b> lies beside the aorta.</p><p>Zoom in with Ctrl+scroll (or pinch) to see them.</p>",
+      "go": { "key": "adrenal_gland_right" }, "show": ["adrenal_gland", "inferior_vena_cava", "aorta"]
+    },
+    {
+      "title": "Posterior abdominal wall",
+      "body": "<p><b>Psoas</b> runs beside the vertebral bodies. <b>Quadratus lumborum</b> sits behind the kidney, lateral to psoas. <b>Erector spinae</b> fills the gutters beside the spinous processes.</p><p>The kidneys rest on psoas and quadratus lumborum.</p>",
+      "go": { "key": "kidney_left" }, "show": ["iliopsoas", "quadratus_lumborum", "autochthon", "kidney"]
+    },
+    {
+      "title": "Small bowel and colon",
+      "body": "<p>The <b>small bowel</b> is the central coil of narrower loops. The <b>colon</b> frames the abdomen: ascending on the right, transverse across the front, descending on the left.</p><p>The coronal view shows the colonic frame best.</p>",
+      "go": { "key": "small_bowel" }, "show": ["small_bowel", "colon"]
+    },
+    {
+      "title": "Where the aorta divides",
+      "body": "<p>Scroll down. The <b>aorta</b> divides into the <b>common iliac arteries</b> at about L4.</p><p>A little lower, at about L5, the <b>common iliac veins</b> join to form the <b>IVC</b>, behind the right common iliac artery.</p><p>Check the vertebral level as you go. It may not match the textbook in this patient.</p>",
+      "go": { "landmark": "Aortic bifurcation" }, "show": ["aorta", "iliac_artery", "inferior_vena_cava", "iliac_vena"]
+    },
+    {
+      "title": "The pelvis",
+      "body": "<p>The <b>bladder</b> is the fluid-filled sac behind the pubic bones. In this male patient the <b>prostate</b> sits below it.</p><p>The sigmoid and rectum lie behind. The femoral heads sit in the acetabula on either side.</p>",
+      "go": { "key": "urinary_bladder" }, "show": ["urinary_bladder", "prostate", "colon", "hip"]
+    },
+    {
+      "title": "Now test yourself",
+      "body": "<p>You have met the core structures. The quiz starts with them, hides the labels, and asks you to find or name each one.</p><p>Structures you get wrong come up more often. In Explore, labels are off by default: hold <b>Space</b> or the Peek button to check yourself.</p>",
+      "go": { "key": "pancreas" }, "show": [], "final": true
+    }
+  ]
+}
