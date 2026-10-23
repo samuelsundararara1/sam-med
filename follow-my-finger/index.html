@@ -1,0 +1,2454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Follow my finger</title>
+
+<meta name="description" content="Examine a virtual patient's eyes: eye movements, pupils, cover test and visual fields. Find the lesion.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+/* Layout: an exam bench (stage canvas + tools) beside a case sheet; stacks to one column on phones.
+   Tokens follow the sam.med site stylesheet (ECG-paper ground, trace red, scrubs green). */
+:root {
+  --paper: #FBF3F1;
+  --grid-minor: rgba(215, 38, 61, 0.07);
+  --grid-major: rgba(215, 38, 61, 0.14);
+  --ink: #1D2340;
+  --muted: #5E6380;
+  --trace: #D7263D;
+  --scrubs: #2E8B77;
+  --scrubs-ink: #FFFFFF;
+  --scrubs-soft: #DCEFE9;
+  --panel: #FFFDFC;
+  --line: #E9D3CF;
+  --chip: #F7ECE9;
+  --stage: #E3EEEA;
+  --stage-ink: #3D5A54;
+  --amber: #9A6408;
+  --amber-soft: #FBEFD6;
+  --bad-soft: #FBE1E4;
+  --serif: "Young Serif", Georgia, "Times New Roman", serif;
+  --sans: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  box-sizing: border-box;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141A2E;
+    --grid-minor: rgba(240, 90, 110, 0.06);
+    --grid-major: rgba(240, 90, 110, 0.12);
+    --ink: #F1EEF6;
+    --muted: #A9ADC4;
+    --trace: #FF5A6E;
+    --scrubs: #3FA88F;
+    --scrubs-ink: #06211B;
+    --scrubs-soft: #1C3A36;
+    --panel: #1B2239;
+    --line: #2C3452;
+    --chip: #232B47;
+    --stage: #1B2B33;
+    --stage-ink: #A6C6BF;
+    --amber: #E7AE4A;
+    --amber-soft: #3A2F1C;
+    --bad-soft: #3D1F2A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141A2E;
+  --grid-minor: rgba(240, 90, 110, 0.06);
+  --grid-major: rgba(240, 90, 110, 0.12);
+  --ink: #F1EEF6;
+  --muted: #A9ADC4;
+  --trace: #FF5A6E;
+  --scrubs: #3FA88F;
+  --scrubs-ink: #06211B;
+  --scrubs-soft: #1C3A36;
+  --panel: #1B2239;
+  --line: #2C3452;
+  --chip: #232B47;
+  --stage: #1B2B33;
+  --stage-ink: #A6C6BF;
+  --amber: #E7AE4A;
+  --amber-soft: #3A2F1C;
+  --bad-soft: #3D1F2A;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: inherit; }
+html, body { margin: 0; }
+body {
+  font-family: var(--sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px, 8px 8px, 8px 8px;
+  min-height: 100vh;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+a { color: inherit; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--trace); outline-offset: 3px; border-radius: 8px; }
+
+/* ---------- header ---------- */
+.top {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-block: 18px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 24px;
+}
+.home {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  text-decoration: none;
+  color: var(--trace);
+  align-self: center;
+}
+.home:hover { text-decoration: underline; text-underline-offset: 4px; }
+.titles { flex: 1 1 280px; min-width: 0; }
+.titles h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.9rem, 4.6vw, 2.8rem);
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.tag { margin: 4px 0 0; color: var(--muted); font-size: 1rem; }
+.modes {
+  display: inline-flex;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 2px;
+}
+.modes button {
+  border: 0;
+  background: transparent;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--muted);
+}
+.modes button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+
+/* ---------- layout ---------- */
+.layout {
+  max-width: 1240px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  padding-block-end: 24px;
+}
+@media (max-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- bench ---------- */
+.bench {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+@media (min-width: 901px) { .bench { position: sticky; top: max(12px, env(safe-area-inset-top, 0px)); } }
+.stage-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.seg button {
+  border: 0;
+  background: transparent;
+  padding: 6px 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.tog {
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.tog[aria-pressed="true"] { background: var(--scrubs-soft); border-color: var(--scrubs); }
+.tog.dark[aria-pressed="false"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.clock {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.stage {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--stage);
+  aspect-ratio: 16 / 11;
+  max-width: 100%;
+}
+@media (max-width: 560px) { .stage { aspect-ratio: 5 / 6; } }
+#stage { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.tools {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  border-radius: 14px;
+  padding: 8px 4px 7px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.15;
+}
+.tool svg { width: 30px; height: 30px; }
+.tool small { font-weight: 500; font-size: 0.75rem; color: var(--muted); }
+.tool[aria-pressed="true"] { background: var(--scrubs); border-color: var(--scrubs); color: var(--scrubs-ink); }
+.tool[aria-pressed="true"] small { color: var(--scrubs-ink); opacity: 0.85; }
+.hint { margin: 0; font-size: 0.92rem; color: var(--muted); min-height: 2.6em; }
+.hint b { color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips .lab {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-right: 2px;
+}
+.chip {
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.chip:hover { background: var(--chip); }
+.chip[aria-pressed="true"] { background: var(--scrubs-soft); border-color: var(--scrubs); }
+.chip.hold:active, .chip.hold.on { background: var(--scrubs); color: var(--scrubs-ink); border-color: var(--scrubs); }
+
+/* ---------- sheet ---------- */
+.sheet {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  min-width: 0;
+}
+.blk { padding: 16px 18px; border-top: 1px solid var(--line); }
+.blk:first-child { border-top: 0; }
+.blk h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+.stem {
+  font-size: 1.05rem;
+  margin: 0;
+  border-left: 3px solid var(--trace);
+  padding: 2px 0 2px 12px;
+}
+.stem .who { font-weight: 700; display: block; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row.space { justify-content: space-between; }
+select {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.btn {
+  border: 1px solid var(--line);
+  background: var(--chip);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn.primary { background: var(--scrubs); color: var(--scrubs-ink); border-color: var(--scrubs); }
+.btn.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.stats { font-size: 0.9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* checklist */
+.check { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.check li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.92rem;
+  padding: 3px 0;
+}
+.check .dot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  display: grid; place-items: center;
+}
+.check li.part .dot { border-color: var(--amber); background: var(--amber-soft); }
+.check li.done .dot { border-color: var(--scrubs); background: var(--scrubs); }
+.check li.done .dot::after { content: ""; width: 7px; height: 4px; border-left: 2px solid var(--scrubs-ink); border-bottom: 2px solid var(--scrubs-ink); transform: rotate(-45deg) translate(1px, -1px); }
+.check .prog { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.check li.done .lbl { color: var(--muted); }
+.extras { margin: 8px 0 0; font-size: 0.85rem; color: var(--muted); }
+
+/* log */
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 220px; overflow-y: auto; }
+.log li { font-size: 0.92rem; padding: 6px 10px; border-radius: 10px; background: var(--chip); }
+.log li .k { font-weight: 700; }
+.log li.res { background: var(--scrubs-soft); }
+.log .empty { background: transparent; color: var(--muted); padding: 0; }
+
+/* answer + debrief */
+form { display: grid; gap: 12px; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend, .lbl-top { font-weight: 700; font-size: 0.92rem; padding: 0; margin-bottom: 6px; }
+legend span { font-weight: 500; color: var(--muted); }
+.radios { display: flex; flex-wrap: wrap; gap: 6px; }
+.radios label {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.radios input { position: absolute; opacity: 0; pointer-events: none; }
+.radios label:has(input:checked) { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.radios label:has(input:focus-visible) { outline: 3px solid var(--trace); outline-offset: 2px; }
+.charts { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.chart-wrap { display: grid; gap: 4px; justify-items: center; }
+.chart-wrap .cap { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+svg.fchart { width: 230px; max-width: 100%; height: auto; }
+svg.fchart .rg { fill: var(--panel); stroke: var(--muted); stroke-width: 1; cursor: pointer; }
+svg.fchart .rg.on { fill: var(--ink); }
+svg.fchart.ro .rg { cursor: default; }
+svg.fchart .rg.wrong { stroke: var(--trace); stroke-width: 2.5; }
+svg.fchart text { fill: var(--muted); font: 600 9px var(--sans); }
+svg.fchart text.big { fill: var(--ink); font: 700 11px var(--sans); }
+.verdict {
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.verdict.ok { background: var(--scrubs-soft); }
+.verdict.no { background: var(--bad-soft); }
+.verdict small { display: block; font-weight: 500; font-size: 0.92rem; margin-top: 2px; }
+.score { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+.score li { font-size: 0.85rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--chip); font-variant-numeric: tabular-nums; }
+.score li.ok { background: var(--scrubs-soft); }
+.score li.no { background: var(--bad-soft); }
+.teach h3 { font-size: 0.95rem; margin: 14px 0 4px; }
+.teach p, .teach ul { margin: 0; font-size: 0.95rem; }
+.teach ul { padding-left: 1.1rem; }
+.teach li { margin: 2px 0; }
+.missed { margin-top: 10px; background: var(--amber-soft); border-radius: 12px; padding: 10px 12px; font-size: 0.92rem; }
+.missed b { display: block; margin-bottom: 2px; }
+.viva { margin-top: 14px; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.viva p.q { margin: 0 0 8px; font-weight: 700; }
+.viva .opts { display: grid; gap: 6px; }
+.viva button {
+  text-align: left;
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 0.93rem;
+}
+.viva button:disabled { cursor: default; }
+.viva button.right { background: var(--scrubs-soft); border-color: var(--scrubs); }
+.viva button.wrongpick { background: var(--bad-soft); border-color: var(--trace); }
+.viva .why { margin: 8px 0 0; font-size: 0.92rem; }
+details.reveal summary, details.how summary {
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+details.reveal summary::-webkit-details-marker, details.how summary::-webkit-details-marker { display: none; }
+details.reveal summary::before, details.how summary::before { content: "+ "; color: var(--trace); }
+details[open].reveal summary::before, details[open].how summary::before { content: "– "; }
+.how ol { margin: 8px 0 0; padding-left: 1.2rem; font-size: 0.93rem; }
+.how li { margin: 3px 0; }
+#pv { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; border-radius: 12px; background: var(--stage); }
+.pvcap { margin: 6px 0 0; font-size: 0.88rem; color: var(--muted); }
+
+/* sandbox */
+.sbx { display: grid; gap: 10px; }
+.sbx .head, .sbx .line {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  font-size: 0.88rem;
+}
+.sbx .head { font-weight: 700; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.sbx .line > span { font-weight: 600; }
+.sbx input[type="range"] { width: 100%; accent-color: var(--scrubs); }
+.sbx .val { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+.sbx .cell { display: grid; gap: 0; }
+.checkline { display: flex; gap: 8px; align-items: center; font-size: 0.9rem; font-weight: 600; }
+.checkline input { accent-color: var(--scrubs); width: 18px; height: 18px; }
+
+.foot {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-block: 8px 36px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.foot p { margin: 4px 0; max-width: 80ch; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .tool { font-size: 0.85rem; }
+  .tool svg { width: 26px; height: 26px; }
+  .tool small { display: none; }
+  .blk { padding: 14px; }
+  .modes button { padding: 6px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+</style>
+
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}[hidden]{display:none!important}</style>
+</head>
+<body>
+<header class="top">
+  <a class="home" href="../">sam.med</a>
+  <div class="titles">
+    <h1>Follow my finger</h1>
+    <p class="tag">Examine a virtual patient's eyes, then find the lesion.</p>
+  </div>
+  <nav class="modes" role="tablist" aria-label="Mode">
+    <button type="button" role="tab" id="m-learn" data-mode="learn" aria-selected="true">Learn</button>
+    <button type="button" role="tab" id="m-exam" data-mode="exam" aria-selected="false">Exam</button>
+    <button type="button" role="tab" id="m-sandbox" data-mode="sandbox" aria-selected="false">Sandbox</button>
+  </nav>
+</header>
+
+<main class="layout">
+  <section class="bench" aria-label="Examination bench">
+    <div class="stage-bar">
+      <div class="seg" role="group" aria-label="View">
+        <button type="button" id="v-face" aria-pressed="true">Face</button>
+        <button type="button" id="v-close" aria-pressed="false">Close-up</button>
+      </div>
+      <button type="button" class="tog dark" id="t-lights" aria-pressed="true">Room lights on</button>
+      <button type="button" class="tog" id="t-gauge" aria-pressed="false">Pupil gauge</button>
+      <span class="clock" id="clock" hidden>0:00</span>
+    </div>
+
+    <div class="stage">
+      <canvas id="stage" tabindex="0" aria-label="Virtual patient. Use the tools below to examine the eyes."></canvas>
+    </div>
+
+    <div class="tools" role="toolbar" aria-label="Examination tools">
+      <button type="button" class="tool" data-tool="pen" aria-pressed="true">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M7 25l3-1 14-14-2-2L8 22z"/><path d="M19 11l2 2"/><path d="M7 25l-1 2"/></g><circle cx="25.5" cy="6.5" r="2.5" fill="currentColor"/></svg>
+        Pen<small>Eye movements</small>
+      </button>
+      <button type="button" class="tool" data-tool="torch" aria-pressed="false">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18l9 9 3-3-9-9"/><path d="M11 21l3-3"/><path d="M9 9L5 5M12 7l-1-4M7 12l-4-1"/></g><circle cx="12.5" cy="12.5" r="3.2" fill="currentColor"/></svg>
+        Torch<small>Pupils</small>
+      </button>
+      <button type="button" class="tool" data-tool="cover" aria-pressed="false">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="13" cy="12" rx="8" ry="6.5" fill="currentColor"/><path d="M18 17l8 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+        Occluder<small>Cover test</small>
+      </button>
+      <button type="button" class="tool" data-tool="fields" aria-pressed="false">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18V6a2 2 0 014 0v10"/><path d="M16 15V8a2 2 0 014 0v9"/><path d="M12 17l-2-2a2 2 0 00-3 3l5 6c1 2 3 3 5 3h2a5 5 0 005-5v-5"/><path d="M5 6l-2-1M5 10H2M25 5l2-2M27 9h3"/></g></svg>
+        Fingers<small>Visual fields</small>
+      </button>
+    </div>
+
+    <p class="hint" id="hint" aria-live="polite"></p>
+    <div class="chips" id="sub"></div>
+    <div class="chips" id="more">
+      <span class="lab">More tests</span>
+      <button type="button" class="chip" id="x-va">Visual acuity</button>
+      <button type="button" class="chip" id="x-red">Red pin</button>
+      <button type="button" class="chip" id="x-lift" aria-pressed="false">Lift eyelids</button>
+      <button type="button" class="chip" id="x-ice">Ice pack</button>
+      <button type="button" class="chip" id="x-fundus">Offer fundoscopy</button>
+    </div>
+    <div class="chips" id="tilt">
+      <span class="lab">Head tilt</span>
+      <button type="button" class="chip" data-tilt="R" aria-pressed="false">To patient's right</button>
+      <button type="button" class="chip" data-tilt="straight" aria-pressed="false">Upright</button>
+      <button type="button" class="chip" data-tilt="L" aria-pressed="false">To patient's left</button>
+    </div>
+  </section>
+
+  <aside class="sheet" id="sheet" aria-label="Case">
+    <!-- Patient -->
+    <div class="blk" id="b-patient">
+      <p class="eyebrow" id="patient-eyebrow">Patient</p>
+      <div id="learn-pick">
+        <label class="sr" for="caseSel">Choose a patient</label>
+        <select id="caseSel"></select>
+      </div>
+      <p class="stem" id="stem"></p>
+      <div class="row space" id="exam-bar" hidden>
+        <button type="button" class="btn" id="newCase">New patient</button>
+        <span class="stats" id="stats"></span>
+      </div>
+    </div>
+
+    <!-- Learn: answer -->
+    <div class="blk" id="b-reveal">
+      <details class="reveal" id="revealDetails">
+        <summary>Show the findings and teaching</summary>
+        <div class="teach" id="teach"></div>
+      </details>
+    </div>
+
+    <!-- Exam: answer form + debrief -->
+    <div class="blk" id="b-answer" hidden>
+      <h2>Commit your diagnosis</h2>
+      <form id="answer">
+        <div>
+          <label class="lbl-top" for="dxSel">Lesion</label>
+          <select id="dxSel" required></select>
+        </div>
+        <fieldset>
+          <legend>Side of the lesion <span>(not the side of the field loss)</span></legend>
+          <div class="radios" id="sideRadios">
+            <label><input type="radio" name="side" value="R" id="side-R">Right</label>
+            <label><input type="radio" name="side" value="L" id="side-L">Left</label>
+            <label><input type="radio" name="side" value="B" id="side-B">Midline or both</label>
+            <label><input type="radio" name="side" value="N" id="side-N">No lesion</label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Chart the fields <span>(drawn as the patient sees them, tap any area that's missing)</span></legend>
+          <div id="chartMine"></div>
+        </fieldset>
+        <button type="submit" class="btn primary" id="submitBtn">Commit diagnosis</button>
+      </form>
+    </div>
+    <div class="blk" id="b-debrief" hidden aria-live="polite"></div>
+
+    <!-- Sandbox -->
+    <div class="blk" id="b-sandbox" hidden>
+      <h2>Build a patient</h2>
+      <p class="eyebrow">Drag a nerve down to weaken it</p>
+      <div class="sbx" id="sbx"></div>
+    </div>
+
+    <!-- Patient's view -->
+    <div class="blk" id="b-view">
+      <h2>What the patient sees</h2>
+      <canvas id="pv" width="480" height="270" aria-label="The patient's view of your pen and the room"></canvas>
+      <p class="pvcap" id="pvcap"></p>
+    </div>
+
+    <!-- Checklist -->
+    <div class="blk" id="b-check">
+      <h2>Your exam so far</h2>
+      <ul class="check" id="check"></ul>
+      <p class="extras" id="extras"></p>
+    </div>
+
+    <!-- Log -->
+    <div class="blk" id="b-log">
+      <h2>Replies and results</h2>
+      <ul class="log" id="log" aria-live="polite"></ul>
+    </div>
+
+    <div class="blk">
+      <details class="how">
+        <summary>How to examine the eyes (OSCE order)</summary>
+        <ol>
+          <li><b>Inspect</b> from the end of the bed, then up close: ptosis, head tilt, pupil size and shape, any squint.</li>
+          <li><b>Acuity</b>, each eye, with glasses and pinhole.</li>
+          <li><b>Fields</b> by confrontation, one eye at a time, all four quadrants. Red pin for central vision.</li>
+          <li><b>Pupils</b>: size in light and dim, direct and consensual reflex, swinging torch, then near.</li>
+          <li><b>Eye movements</b> in an H, asking about double vision at each corner. Watch for nystagmus.</li>
+          <li><b>Cover test</b> while the patient fixes on your pen.</li>
+          <li><b>Offer fundoscopy</b> to finish, then present: describe, localise, give a cause.</li>
+        </ol>
+      </details>
+    </div>
+  </aside>
+</main>
+
+<footer class="foot">
+  <p>A schematic teaching model. The eye movements come from a simplified muscle model and the pupils from a simplified reflex model, so real patients will vary. Not for clinical decisions.</p>
+  <p>Made by Sam for <a href="../">sam.med</a>.</p>
+</footer>
+
+<script>
+(() => {
+'use strict';
+/* ---------- Diagnoses offered in Exam mode ---------- */
+const DX = {
+  normal: 'Normal examination',
+  cn3p: 'CN III palsy, pupil-involving',
+  cn3s: 'CN III palsy, pupil-sparing',
+  cn4: 'CN IV (trochlear) palsy',
+  cn6: 'CN VI (abducens) palsy',
+  ino: 'Internuclear ophthalmoplegia (MLF)',
+  mg: 'Myasthenia gravis (neuromuscular junction)',
+  horner: 'Horner syndrome (oculosympathetic)',
+  rapd: 'Optic neuropathy with an RAPD',
+  adie: 'Adie tonic pupil',
+  argyll: 'Argyll Robertson pupils',
+  chiasm: 'Chiasmal lesion (bitemporal hemianopia)',
+  retro: 'Retrochiasmal lesion (homonymous hemianopia)',
+  meyer: "Temporal lobe, Meyer's loop (superior quadrantanopia)"
+};
+const DX_GROUPS = [
+  ['Eye movements and lids', ['cn3p', 'cn3s', 'cn4', 'cn6', 'ino', 'mg']],
+  ['Pupils and optic nerve', ['horner', 'rapd', 'adie', 'argyll']],
+  ['Visual fields', ['chiasm', 'retro', 'meyer']],
+  ['Nothing found', ['normal']]
+];
+const SIDE_NAME = { R: 'right', L: 'left', B: 'midline or both sides', N: 'no lesion' };
+
+/* Key tests, used in feedback when a case needs one you skipped */
+const KEY_MSG = {
+  inspect: 'Close-up inspection: subtle ptosis and anisocoria only show up close.',
+  va: 'Visual acuity: optic nerve disease drops the acuity in the affected eye.',
+  fields: 'Confrontation fields, one eye at a time, in all four quadrants.',
+  dim: 'Pupils in dim light: Horner anisocoria grows in the dark.',
+  direct: 'Direct and consensual light reflexes in each eye.',
+  swing: 'Swinging torch: the only bedside test that shows an RAPD.',
+  near: 'Near response: needed to spot light–near dissociation.',
+  H: 'Eye movements through the full H, asking about double vision.',
+  cover: 'Cover test: shows which eye is deviated.',
+  fundus: 'Fundoscopy: papilloedema changes the whole case.',
+  red: 'Red pin: red desaturation is an early optic nerve sign.',
+  lift: 'Lift the eyelid: a complete ptosis hides both the eye position and the pupil.',
+  fatigue: 'Sustained upgaze: brings out fatigable ptosis.',
+  tilt: 'Head tilt (Bielschowsky): the third step of the three-step test.'
+};
+
+/* ---------- Cases ---------- */
+const CASES = [
+  {
+    id: 'normal', dx: 'normal', side: 'N', tier: 'Core', title: 'Normal eyes',
+    age: 34, sex: 'F',
+    stem: 'Pre-employment medical for a bus driver licence. No visual symptoms.',
+    setup(p) {},
+    keys: [],
+    findings: [
+      'Acuity 6/6 in each eye',
+      'Full fields to confrontation',
+      'Pupils equal and reactive to light and near, no RAPD',
+      'Full eye movements, no double vision or nystagmus',
+      'No ptosis, no movement on cover test'
+    ],
+    where: 'No lesion.',
+    pearl: 'Practise saying it in one breath: "Pupils equal and reactive, no RAPD, full movements without diplopia or nystagmus, fields full to confrontation." A confident normal scores well.',
+    next: 'Nothing further needed.',
+    viva: {
+      q: 'The near response is a triad of…',
+      opts: ['Convergence, accommodation and miosis', 'Convergence, mydriasis and ptosis', 'Accommodation, abduction and miosis', 'Divergence, accommodation and miosis'],
+      a: 0,
+      why: 'Looking at a near target, the medial recti converge, the ciliary muscle contracts to thicken the lens and the pupils constrict. All three run through CN III.'
+    }
+  },
+  {
+    id: 'cn3p', dx: 'cn3p', side: 'R', tier: 'Core', title: 'Right third nerve palsy, pupil involved',
+    age: 58, sex: 'F',
+    stem: 'Sudden severe headache this morning. Since then her right eyelid has drooped shut.',
+    setup(p) {
+      Object.assign(p.mus.R, { MR: 0, SR: 0, IR: 0, IO: 0 });
+      p.ptosis.R = 9;
+      p.dMax.R = 7.6; p.dMin.R = 7.3; p.lightEff.R = 0; p.nearEff.R = 0;
+    },
+    keys: ['lift', 'direct', 'H'],
+    findings: [
+      'Complete right ptosis',
+      'With the lid lifted, the right eye sits down and out',
+      'Right eye cannot adduct, elevate or depress (abduction is spared)',
+      'Right pupil about 7.5 mm, no reaction to light or near',
+      'Light in the right eye still constricts the left pupil, so the afferent side works',
+      'Double vision only once the lid is lifted'
+    ],
+    where: 'Right oculomotor nerve. A dilated pupil means compression: a posterior communicating artery aneurysm until proven otherwise.',
+    pearl: 'The pupil fibres run on the outside of the nerve, so a compressing aneurysm hits them early. Ischaemia mostly damages the core of the nerve and spares them.',
+    next: 'Emergency non-contrast CT and CT angiography. If CT is clear but the story sounds like a bleed, lumbar puncture.',
+    viva: {
+      q: 'What do you do next?',
+      opts: ['Urgent CT brain with CT angiography', 'Check HbA1c and review in two weeks', 'Outpatient MRI of the orbits', 'Ice pack test'],
+      a: 0,
+      why: 'A painful third nerve palsy with a blown pupil is an expanding aneurysm until proven otherwise. The rupture risk is highest in the first days.'
+    }
+  },
+  {
+    id: 'cn3s', dx: 'cn3s', side: 'L', tier: 'Core', title: 'Left third nerve palsy, pupil spared',
+    age: 67, sex: 'M',
+    stem: 'Type 2 diabetes and hypertension. Two days of a drooping left eyelid, double vision and an ache above the left eye.',
+    setup(p) {
+      Object.assign(p.mus.L, { MR: 0, SR: 0, IR: 0, IO: 0 });
+      p.ptosis.L = 9;
+      p.fundus = 'Scattered dot-blot haemorrhages and microaneurysms in both eyes (background diabetic retinopathy). Healthy discs.';
+    },
+    keys: ['lift', 'direct', 'H'],
+    findings: [
+      'Complete left ptosis',
+      'With the lid lifted, the left eye sits down and out',
+      'Left eye cannot adduct, elevate or depress',
+      'Pupils equal and briskly reactive',
+      'Double vision once the lid is lifted'
+    ],
+    where: 'Left oculomotor nerve, from microvascular ischaemia. The pupil is spared because the pupil fibres on the outside of the nerve keep their blood supply.',
+    pearl: 'Pupil sparing is only reassuring when the motor palsy is complete. A partial third nerve palsy with a normal pupil can still be an aneurysm.',
+    next: 'Blood pressure, HbA1c and lipids. Most recover within about three months. Image if he is under 50, has other neurological signs, the palsy is partial, or it does not recover. Many centres now image every third nerve palsy.',
+    viva: {
+      q: 'Which feature would still make you image urgently?',
+      opts: ['The motor palsy is only partial', 'He has diabetes', 'He is over 60', 'He has an ache around the eye'],
+      a: 0,
+      why: 'The "pupil rule" only holds for a complete motor palsy. An ache is common with microvascular palsies and does not change the plan.'
+    }
+  },
+  {
+    id: 'cn4', dx: 'cn4', side: 'R', tier: 'Core', title: 'Right fourth nerve palsy',
+    age: 45, sex: 'M',
+    stem: 'Came off his bike and hit his head three weeks ago. Since then he sees double, one image above the other, worst when reading and going down stairs.',
+    setup(p) {
+      p.mus.R.SO = 0.35;
+      p.cn4 = 'R';
+      p.tiltHabit = -8;
+    },
+    keys: ['H', 'cover'],
+    findings: [
+      'Head tilted to the left (away from the bad eye)',
+      'Right eye a little higher than the left (right hypertropia), small in the straight-ahead position',
+      'Worse looking to the left, worst looking down and to the left',
+      'Vertical or diagonal double vision',
+      'Hypertropia worse with the head tilted to the right'
+    ],
+    where: 'Right trochlear nerve (CN IV). Trauma is the most common acquired cause because the nerve is long and thin.',
+    pearl: 'Three-step test: which eye is higher, is it worse looking left or right, is it worse tilting left or right. A right IV palsy is right-high, worse on left gaze and worse on right tilt.',
+    next: 'If there was no trauma, look for other causes. Prisms or patching for symptoms; most traumatic palsies improve over months.',
+    viva: {
+      q: 'Which gaze position tests the right superior oblique as a depressor?',
+      opts: ['Down and to the left', 'Down and to the right', 'Up and to the left', 'Straight down'],
+      a: 0,
+      why: 'The superior oblique depresses the eye most when the eye is turned in. The right eye turns in when the patient looks left.'
+    }
+  },
+  {
+    id: 'cn6', dx: 'cn6', side: 'L', tier: 'Core', title: 'Left sixth nerve palsy',
+    age: 29, sex: 'F',
+    stem: 'Six weeks of headaches, worse first thing in the morning and when lying down. Now double vision, side by side, worse looking across the room and to the left.',
+    setup(p) {
+      p.mus.L.LR = 0.08;
+      p.fundus = 'Both optic discs are swollen with blurred margins and no spontaneous venous pulsation: papilloedema.';
+    },
+    keys: ['H', 'cover', 'fundus'],
+    findings: [
+      'Left eye turned in (esotropia) looking straight ahead',
+      'Left eye cannot abduct past the midline',
+      'Horizontal double vision, worst on left gaze, absent on right gaze',
+      'Cover test: covering the right eye makes the left eye move out to take up fixation',
+      'Papilloedema on fundoscopy'
+    ],
+    where: 'Left abducens nerve. With headaches worse lying down, this is raised intracranial pressure: the sixth nerve palsy is a false localising sign.',
+    pearl: 'The abducens has a long course and gets stretched over the petrous ridge when pressure rises, so it is the first nerve to show raised ICP.',
+    next: 'Urgent imaging including venography (exclude a mass and venous sinus thrombosis), then lumbar puncture with an opening pressure if imaging is clear. Idiopathic intracranial hypertension fits her story.',
+    viva: {
+      q: 'What must you examine next?',
+      opts: ['The fundi, looking for papilloedema', 'The corneal reflexes', 'Hearing, with Rinne and Weber', 'The gag reflex'],
+      a: 0,
+      why: 'Headache worse lying down plus a sixth nerve palsy means raised pressure until proven otherwise. Papilloedema confirms it.'
+    }
+  },
+  {
+    id: 'horner', dx: 'horner', side: 'L', tier: 'Core', title: 'Left Horner syndrome',
+    age: 47, sex: 'M',
+    stem: 'Sudden pain on the left side of his neck and head after a chiropractic neck adjustment yesterday. His partner says his left eye looks smaller.',
+    setup(p) {
+      p.ptosis.L = 1.6; p.lowerLift.L = 1.0;
+      p.dMax.L = 4.9; p.dMin.L = 2.3; p.tauD.L = 2.8;
+    },
+    keys: ['inspect', 'dim'],
+    findings: [
+      'Mild left ptosis (1–2 mm) with a slightly raised lower lid',
+      'Left pupil smaller; the difference grows in dim light',
+      'Left pupil is slow to dilate when the lights go off (dilation lag)',
+      'Both pupils react to light and near',
+      'Full eye movements'
+    ],
+    where: 'Left oculosympathetic pathway. Neck pain after manipulation points to a left internal carotid artery dissection.',
+    pearl: 'If the anisocoria is worse in the dark, the small pupil is the abnormal one (it cannot dilate). If it is worse in the light, the big pupil is abnormal (it cannot constrict).',
+    next: 'Urgent CT or MR angiography of the head and neck. A dissection is a stroke risk.',
+    viva: {
+      q: 'What is the most useful next investigation?',
+      opts: ['CT angiography of the head and neck', 'Chest X-ray for an apical lung tumour', 'Outpatient MRI brain in six weeks', 'None, it is a normal variant'],
+      a: 0,
+      why: 'An acute, painful Horner syndrome is a carotid dissection until proven otherwise. A chest X-ray suits a smoker with shoulder or arm pain (Pancoast tumour).'
+    }
+  },
+  {
+    id: 'rapd', dx: 'rapd', side: 'R', tier: 'Core', title: 'Right optic neuritis with an RAPD',
+    age: 26, sex: 'F',
+    stem: 'Four days of blurred vision in her right eye. It aches when she moves the eye, and colours look washed out.',
+    setup(p) {
+      p.afferent.R = 0.25;
+      p.va.R = '6/36'; p.pin.R = '6/36';
+      p.red.R = true; p.scotoma.R = 0.22; p.pain = 'R';
+      p.fundus = 'Both discs look normal. In retrobulbar optic neuritis the patient sees nothing and the doctor sees nothing.';
+    },
+    keys: ['swing', 'va', 'red'],
+    findings: [
+      'Acuity 6/36 right (no better with pinhole), 6/6 left',
+      'Pupils equal in size at rest',
+      'Swinging torch: both pupils dilate when the light moves to the right eye (right RAPD)',
+      'Red looks washed out in the right eye',
+      'Central blur in the right eye',
+      'Full but painful eye movements'
+    ],
+    where: 'Right optic nerve: optic neuritis.',
+    pearl: 'An RAPD never causes unequal pupils. Both pupils get the same signal from the midbrain, so they stay equal; you only see the defect by comparing the eyes with a swinging torch.',
+    next: 'MRI brain and orbits with gadolinium to look for demyelination, and an ophthalmology review. IV methylprednisolone speeds recovery but does not change the final vision.',
+    viva: {
+      q: 'Which test best predicts her risk of multiple sclerosis?',
+      opts: ['MRI brain with contrast', 'CT head', 'Lumbar puncture on its own', 'Visual evoked potentials'],
+      a: 0,
+      why: 'The number of white-matter lesions on MRI is the strongest predictor of conversion to MS after optic neuritis.'
+    }
+  },
+  {
+    id: 'chiasm', dx: 'chiasm', side: 'B', tier: 'Core', title: 'Bitemporal hemianopia',
+    age: 52, sex: 'M',
+    stem: 'Keeps clipping door frames, and other cars’ mirrors when changing lanes, on both sides. His wedding ring stopped fitting last year.',
+    setup(p) {
+      p.field = 'bitemporal';
+      p.fundus = 'Discs look normal. Optic atrophy only appears after long-standing compression.';
+    },
+    keys: ['fields'],
+    findings: [
+      'Outer (temporal) half of the field missing in each eye',
+      'Acuity, pupils and eye movements normal'
+    ],
+    where: 'Optic chiasm, where the nasal retinal fibres (carrying the temporal fields) cross. A pituitary macroadenoma fits, with acromegaly here.',
+    pearl: 'Pituitary tumours press up from below, so the defect often starts in the upper temporal quadrants. Craniopharyngiomas press from above and start below.',
+    next: 'MRI pituitary with contrast, pituitary hormone profile and formal perimetry.',
+    viva: {
+      q: 'Which emergency can this tumour cause?',
+      opts: ['Pituitary apoplexy: sudden headache, double vision and visual loss', 'Malignant hyperthermia', 'Central retinal artery occlusion', 'Acute angle-closure glaucoma'],
+      a: 0,
+      why: 'Bleeding into the adenoma expands it suddenly, compressing the chiasm and cavernous sinus nerves, and can cause an Addisonian crisis.'
+    }
+  },
+  {
+    id: 'retro', dx: 'retro', side: 'L', tier: 'Core', title: 'Right homonymous hemianopia',
+    age: 74, sex: 'F',
+    stem: 'Atrial fibrillation, stopped her anticoagulant last month. Since yesterday she keeps missing food on the right side of her plate.',
+    setup(p) {
+      p.field = 'homRight';
+    },
+    keys: ['fields'],
+    findings: [
+      'Right half of the field missing in both eyes',
+      'Central vision spared',
+      'Acuity, pupils and eye movements normal'
+    ],
+    where: 'Left retrochiasmal pathway. A matching defect in both eyes with central sparing points to the left occipital lobe (posterior cerebral artery stroke).',
+    pearl: 'Homonymous means the same side in both eyes, and the lesion is on the opposite side. Confrontation cannot show macular sparing; that needs formal perimetry.',
+    next: 'Stroke pathway: urgent CT with angiography or MRI, consider reperfusion if in the window, and plan anticoagulation. She cannot drive.',
+    viva: {
+      q: 'Why might her central vision be spared?',
+      opts: ['The occipital pole gets blood from both the middle and posterior cerebral arteries', 'The macula is supplied by the central retinal artery', 'The lateral geniculate nucleus has collateral flow from the ophthalmic artery', 'Central vision is processed in the frontal eye fields'],
+      a: 0,
+      why: 'The macular cortex at the occipital pole has a dual supply, so a PCA stroke often leaves it working.'
+    }
+  },
+  {
+    id: 'ino', dx: 'ino', side: 'R', tier: 'Stretch', title: 'Right internuclear ophthalmoplegia',
+    age: 31, sex: 'F',
+    stem: 'Two weeks of double vision when she looks to the left. Last year her legs went numb for a month, then recovered.',
+    setup(p) {
+      p.mlf.R = 0.12;
+      p.inoNyst = { R: false, L: true };
+    },
+    keys: ['H', 'near'],
+    findings: [
+      'Eyes straight looking ahead',
+      'On left gaze the right eye barely adducts',
+      'The left eye shows jerky nystagmus as it abducts',
+      'Convergence is normal: the right eye adducts fine on a near target',
+      'Double vision on left gaze'
+    ],
+    where: 'Right medial longitudinal fasciculus in the brainstem. An INO is named for the side that cannot adduct. In a young woman with a past neurological episode, think multiple sclerosis.',
+    pearl: 'Normal convergence proves the right medial rectus and CN III work. The broken link is between the left sixth nerve nucleus and the right third nerve nucleus.',
+    next: 'MRI brain and spinal cord with contrast, and a neurology referral.',
+    viva: {
+      q: 'Why is convergence preserved in an INO?',
+      opts: ['Convergence signals reach the medial rectus without using the MLF', 'The lateral rectus helps the eye converge', 'Convergence is driven by CN IV', 'The MLF only carries downgaze signals'],
+      a: 0,
+      why: 'Vergence comes from midbrain neurons that project straight to the medial rectus subnucleus, bypassing the pontine route through the MLF.'
+    }
+  },
+  {
+    id: 'adie', dx: 'adie', side: 'L', tier: 'Stretch', title: 'Left Adie tonic pupil',
+    age: 32, sex: 'F',
+    stem: 'Noticed in the mirror that her left pupil is bigger. Reading has been blurry with that eye.',
+    setup(p) {
+      p.dMax.L = 6.9; p.dMin.L = 2.6;
+      p.lightEff.L = 0.07; p.nearEff.L = 1.6;
+      p.tauC.L = 1.7; p.tauD.L = 4.5;
+    },
+    keys: ['inspect', 'direct', 'near'],
+    findings: [
+      'Left pupil larger; the difference is biggest in bright light',
+      'Left pupil barely reacts to light',
+      'On a near target it constricts slowly, stays small, then re-dilates slowly (light–near dissociation)',
+      'No ptosis, full eye movements'
+    ],
+    where: 'Left ciliary ganglion (postganglionic parasympathetic). With reduced tendon reflexes it would be Holmes–Adie syndrome.',
+    pearl: 'Light–near dissociation: one large pupil means Adie, two small irregular pupils mean Argyll Robertson.',
+    next: 'Dilute pilocarpine test (the tonic pupil constricts) and reassurance. Reading glasses help the accommodation symptoms.',
+    viva: {
+      q: 'Why does dilute pilocarpine constrict an Adie pupil but not a normal one?',
+      opts: ['Denervation hypersensitivity of the iris sphincter', 'Sympathetic overactivity', 'The drug blocks the dilator muscle', 'Aberrant regeneration of CN III'],
+      a: 0,
+      why: 'After the ciliary ganglion is damaged, the sphincter grows more receptors and responds to a dose too weak to affect a normal pupil.'
+    }
+  },
+  {
+    id: 'mg', dx: 'mg', side: 'B', tier: 'Stretch', title: 'Ocular myasthenia gravis',
+    age: 63, sex: 'M',
+    stem: 'Two months of droopy eyelids and double vision. Fine first thing in the morning, worse by evening or after reading.',
+    setup(p) {
+      p.mg = {
+        mus: { R: { LR: 0.72, MR: 0.92 }, L: { SR: 0.62, MR: 0.85, IR: 0.92 } },
+        ptosis: { R: 2.2, L: 1.0 },
+        fat: { R: 3.4, L: 2.2 }
+      };
+    },
+    keys: ['fatigue', 'H'],
+    findings: [
+      'Ptosis in both eyes, right worse, that increases with sustained upgaze',
+      'Ptosis improves after an ice pack',
+      'Weak movements that do not match any single nerve, and get worse as you keep testing',
+      'Pupils normal'
+    ],
+    where: 'Neuromuscular junction: ocular myasthenia gravis.',
+    pearl: 'Myasthenia never affects the pupils. Fatigable ptosis plus a mixed pattern of weak muscles with normal pupils means MG until proven otherwise.',
+    next: 'Acetylcholine receptor antibodies (anti-MuSK if negative), CT chest for a thymoma, and ask about swallowing and breathing.',
+    viva: {
+      q: 'Which blood test supports the diagnosis?',
+      opts: ['Acetylcholine receptor antibodies', 'Anti-GQ1b antibodies', 'HbA1c', 'Anti-aquaporin-4 antibodies'],
+      a: 0,
+      why: 'AChR antibodies are positive in about half of ocular MG. Anti-GQ1b fits Miller Fisher syndrome and aquaporin-4 fits neuromyelitis optica.'
+    }
+  },
+  {
+    id: 'meyer', dx: 'meyer', side: 'R', tier: 'Stretch', title: 'Left superior quadrantanopia',
+    age: 38, sex: 'M',
+    stem: 'Two spells of a strange smell and déjà vu, then losing time. Now he keeps missing things up and to his left.',
+    setup(p) {
+      p.field = 'supQuadLeft';
+    },
+    keys: ['fields'],
+    findings: [
+      'Upper left quadrant missing in both eyes',
+      'Acuity, pupils and eye movements normal'
+    ],
+    where: "Right temporal lobe. Meyer's loop carries the fibres for the upper half of the opposite field.",
+    pearl: '"Pie in the sky" is temporal; "pie on the floor" is parietal. Both are on the side opposite the lesion.',
+    next: 'MRI brain with contrast (a temporal tumour is likely), EEG and neurology review. He must not drive.',
+    viva: {
+      q: 'A left inferior homonymous quadrantanopia localises to…',
+      opts: ['Right parietal lobe', 'Left temporal lobe', 'Optic chiasm', 'Left parietal lobe'],
+      a: 0,
+      why: 'The upper optic radiation runs through the parietal lobe and carries the lower half of the opposite field.'
+    }
+  },
+  {
+    id: 'argyll', dx: 'argyll', side: 'B', tier: 'Stretch', title: 'Argyll Robertson pupils',
+    age: 55, sex: 'M',
+    stem: 'Unsteady walking, worse in the dark, and shooting pains in his legs.',
+    setup(p) {
+      p.dMax.R = p.dMax.L = 3.0; p.dMin.R = p.dMin.L = 1.5;
+      p.lightEff.R = p.lightEff.L = 0; p.nearEff.R = p.nearEff.L = 1.8;
+      p.irregular.R = p.irregular.L = 1;
+    },
+    keys: ['direct', 'near'],
+    findings: [
+      'Both pupils small (about 2–3 mm) and irregular',
+      'No reaction to light',
+      'Brisk constriction to a near target (light–near dissociation)',
+      'Normal eye movements'
+    ],
+    where: 'Dorsal midbrain near the pretectal nuclei. Classically neurosyphilis; with his gait and leg pains, tabes dorsalis.',
+    pearl: 'Light–near dissociation with two small, irregular pupils is Argyll Robertson. With one big pupil, think Adie.',
+    next: 'Treponemal and non-treponemal serology, an HIV test and a lumbar puncture for CSF VDRL. Neurosyphilis is treated with IV benzylpenicillin.',
+    viva: {
+      q: 'Which test do you send?',
+      opts: ['Syphilis serology', 'Acetylcholine receptor antibodies', 'Ice pack test', 'Nerve conduction studies'],
+      a: 0,
+      why: 'Argyll Robertson pupils point to neurosyphilis; serology and CSF testing confirm it.'
+    }
+  }
+];
+
+/* ================= helpers ================= */
+const $ = (s) => document.querySelector(s);
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => t * t * (3 - 2 * t);
+const DEG = Math.PI / 180;
+const EYES = ['R', 'L'];
+const SIGN = { R: -1, L: 1 };      // screen-x direction of each eye's lateral (abduction) side
+const OTHER = { R: 'L', L: 'R' };
+const EX = { R: -32, L: 32 };      // eye centres in face millimetres (patient's right eye is on the viewer's left)
+const EYE_NAME = { R: 'right', L: 'left' };
+const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+};
+const SKEY = 'sammed.follow-my-finger.v1';
+let stats = Object.assign({ cases: {}, streak: 0, best: 0 }, store.get(SKEY, {}) || {});
+
+/* ================= patient ================= */
+const SKINS = [
+  ['#F3CDB0', '#DDAA88', '#B98060'], ['#E8B690', '#CC9169', '#A66B48'], ['#C98E62', '#AC7146', '#865231'],
+  ['#A9704A', '#8C5635', '#6A3D22'], ['#7E4E30', '#663B22', '#4B2915'], ['#5E3A24', '#4A2C1A', '#341C0E']
+];
+const HAIRS = ['#1E1714', '#3B2618', '#5E3D25', '#8F6238', '#A9452B', '#C2A060'];
+const GREY = '#BDB8B1';
+const IRISES = ['#6B4423', '#8A6B32', '#5E7C4C', '#4F7EA8', '#6E8894', '#7A5230'];
+const GOWNS = ['#A9C6E3', '#B5D8C6', '#C9C2E8'];
+const GLOVE = '#7F8FDB';
+const GLOVE_DK = '#5A68B4';
+
+function basePatient() {
+  const m = () => ({ LR: 1, MR: 1, SR: 1, IR: 1, IO: 1, SO: 1 });
+  return {
+    mus: { R: m(), L: m() }, mlf: { R: 1, L: 1 }, inoNyst: { R: false, L: false },
+    ptosis: { R: 0, L: 0 }, lowerLift: { R: 0, L: 0 },
+    afferent: { R: 1, L: 1 },
+    dMax: { R: 6.5, L: 6.5 }, dMin: { R: 2.4, L: 2.4 },
+    lightEff: { R: 1, L: 1 }, nearEff: { R: 1, L: 1 },
+    tauC: { R: 0.22, L: 0.22 }, tauD: { R: 0.7, L: 0.7 },
+    irregular: { R: 0, L: 0 },
+    field: 'normal', scotoma: { R: 0, L: 0 },
+    va: { R: '6/6', L: '6/6' }, pin: { R: '6/6', L: '6/6' },
+    red: { R: false, L: false },
+    mg: null, cn4: null, pain: null, tiltHabit: 0,
+    fundus: 'Both optic discs look healthy: pink, sharp margins, normal cups.',
+    pref: 'R', look: null,
+    irr: { R: Array.from({ length: 14 }, () => 0.82 + Math.random() * 0.3), L: Array.from({ length: 14 }, () => 0.82 + Math.random() * 0.3) }
+  };
+}
+function finishPatient(p) {
+  const score = (e) => Object.values(p.mus[e]).reduce((a, b) => a + b, 0) + 3 * p.afferent[e] + p.mlf[e] - (p.ptosis[e] >= 6 ? 4 : 0);
+  p.pref = score('L') > score('R') + 1e-6 ? 'L' : 'R';
+  return p;
+}
+function randomLook(age, sex) {
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  return {
+    skin: pick(SKINS),
+    hair: age >= 62 ? GREY : pick(HAIRS),
+    long: sex === 'F' ? Math.random() < 0.75 : Math.random() < 0.1,
+    bald: sex === 'M' && age > 55 && Math.random() < 0.45,
+    iris: pick(IRISES),
+    gown: pick(GOWNS)
+  };
+}
+
+/* Visual fields. x = towards the patient's right, y = up; 1 is far periphery. Returns 1 seen, 0 missing. */
+const FIELDS = {
+  normal: () => 1,
+  bitemporal: (e, x) => ((e === 'R' ? x > 0.03 : x < -0.03) ? 0 : 1),
+  homRight: (e, x, y, r) => (x > 0.03 && r > 0.07 ? 0 : 1),
+  homLeft: (e, x, y, r) => (x < -0.03 && r > 0.07 ? 0 : 1),
+  supQuadLeft: (e, x, y) => (x < -0.03 && y > 0.03 ? 0 : 1),
+  supQuadRight: (e, x, y) => (x > 0.03 && y > 0.03 ? 0 : 1),
+  infQuadLeft: (e, x, y) => (x < -0.03 && y < -0.03 ? 0 : 1),
+  infQuadRight: (e, x, y) => (x > 0.03 && y < -0.03 ? 0 : 1)
+};
+function seenBy(p, e, x, y) {
+  const r = Math.hypot(x, y);
+  if (r > 1.35) return 0;
+  if (p.afferent[e] < 0.06) return 0;
+  let v = FIELDS[p.field](e, x, y, r);
+  if (p.scotoma[e] > 0 && r < p.scotoma[e]) v = Math.min(v, 0.25);
+  return v;
+}
+
+/* ================= eye movement model =================
+   Each eye is a pair of antagonist springs per axis. Both eyes receive the same drive (Hering's law);
+   the fixing eye's drive is solved so it lands on the target, so incomitance and secondary deviation emerge. */
+function musOf(p, e) {
+  const m = p.mus[e];
+  if (!p.mg) return m;
+  const k = 1 - 0.5 * sim.fatE;
+  const f = p.mg.mus[e] || {};
+  const out = {};
+  for (const key in m) out[key] = m[key] * (f[key] ? f[key] * k : 1);
+  return out;
+}
+function ED(m, th) {
+  const w = clamp(0.55 + 0.45 * th, 0.1, 1);
+  return [m.SR * w + m.IO * (1 - w), m.IR * w + m.SO * (1 - w)];
+}
+function hPos(m, a) { return 0.5 * (m.LR * (1 + a) - m.MR * (1 - a)); }
+function solveGaze(p, fix, gx, gy, c, bias) {
+  const M = { R: musOf(p, 'R'), L: musOf(p, 'L') };
+  const mf = M[fix];
+  const T = SIGN[fix] * gx - c;
+  const af = (2 * T - (mf.LR - mf.MR)) / Math.max(mf.LR + mf.MR, 0.05);
+  let vpart = af + c;
+  if (vpart < 0) vpart /= Math.max(p.mlf[fix], 0.08);
+  const Hx = clamp(SIGN[fix] * vpart, -1.7, 1.7);
+  const th = {}, tv = {};
+  for (const e of EYES) {
+    let a = SIGN[e] * Hx;
+    if (a < 0) a *= p.mlf[e];
+    a -= c;
+    th[e] = clamp(hPos(M[e], a), -1.15, 1.15);
+  }
+  const [E, D] = ED(mf, th[fix]);
+  const v = clamp((2 * (gy - bias[fix]) - (E - D)) / Math.max(E + D, 0.05), -1.7, 1.7);
+  for (const e of EYES) {
+    const [Ee, De] = ED(M[e], th[e]);
+    tv[e] = clamp(0.5 * (Ee * (1 + v) - De * (1 - v)) + bias[e], -1.1, 1.1);
+  }
+  return { th, tv };
+}
+
+/* ================= state ================= */
+const state = {
+  mode: 'learn', tool: 'pen', view: 'face', viewT: 0, lights: true, gauge: false,
+  pen: { x: 0, y: 0 }, penHeld: false, nearHold: false,
+  torch: { on: false, x: 0, y: 0 }, torchFace: { x: 0, y: 0 },
+  cover: null, handCover: 'L', lift: false, posture: 'habit',
+  fingers: null, ice: 0, iceAnim: 0, iceDone: false
+};
+const sim = {
+  th: { R: 0, L: 0 }, tv: { R: 0, L: 0 }, dTh: { R: 0, L: 0 }, dTv: { R: 0, L: 0 },
+  d: { R: 4, L: 4 }, near: 0, blink: 0, blinkT: 2.5, blinkPhase: 0, nyPhase: 0,
+  fatE: 0, fatUp: 0, upHold: 0, ptosisEff: { R: 0, L: 0 }, tilt: 0,
+  light: { R: 0, L: 0 }, torchI: { R: 0, L: 0 }, fix: 'R', canSee: { R: true, L: true },
+  err: { R: { x: 0, y: 0 }, L: { x: 0, y: 0 } }, disp: { x: 0, y: 0 }, dip: 'single',
+  jit: { x: 0, y: 0 }, jitT: 0,
+  say: '', sayUntil: 0, lastDipSaid: '', lastDipT: 0, lastPain: 0, mgSaid: false, brightSaid: false
+};
+let P = null;      // current patient model
+let C = null;      // current case (null in sandbox)
+let track = null;
+let logItems = [];
+
+function newTrack() {
+  return {
+    t0: performance.now(), closeTime: 0, va: false, fundus: false, dim: false,
+    litR: 0, litL: 0, swings: [], lastLit: null, lastLitT: 0, near: false,
+    H: new Set(), coverR: false, coverL: false, fields: new Set(),
+    red: false, face: false, lift: false, tilt: false, ice: false, fatigue: false,
+    submitted: false, tEnd: 0
+  };
+}
+const swingCount = (now = performance.now()) => track.swings.filter((t) => now - t < 12000).length;
+const CHECK = [
+  { id: 'inspect', label: 'Inspect lids and pupils up close', prog: () => Math.min(track.closeTime / 2, 1) },
+  { id: 'va', label: 'Visual acuity', prog: () => (track.va ? 1 : 0) },
+  { id: 'fields', label: 'Fields, each eye, 4 quadrants', prog: () => track.fields.size / 8, txt: () => `${track.fields.size}/8` },
+  { id: 'dim', label: 'Pupils in dim light', prog: () => (track.dim ? 1 : 0) },
+  { id: 'direct', label: 'Light reflex in each eye', prog: () => (Math.min(track.litR, 0.35) + Math.min(track.litL, 0.35)) / 0.7 },
+  { id: 'swing', label: 'Swinging torch', prog: () => Math.min(swingCount() / 3, 1) },
+  { id: 'near', label: 'Near response', prog: () => (track.near ? 1 : 0) },
+  { id: 'H', label: 'Eye movements in an H', prog: () => track.H.size / 9, txt: () => `${track.H.size}/9` },
+  { id: 'cover', label: 'Cover test, each eye', prog: () => (track.coverR ? 0.5 : 0) + (track.coverL ? 0.5 : 0) },
+  { id: 'fundus', label: 'Offer fundoscopy', prog: () => (track.fundus ? 1 : 0) }
+];
+const EXTRAS = [['red', 'red pin'], ['face', 'face question'], ['lift', 'lifted lids'], ['tilt', 'head tilt'], ['ice', 'ice pack'], ['fatigue', 'sustained upgaze']];
+function isDone(id) {
+  const c = CHECK.find((x) => x.id === id);
+  return c ? c.prog() >= 0.999 : !!track[id];
+}
+
+/* ================= speech & log ================= */
+function say(text, logIt = true) {
+  sim.say = text;
+  sim.sayUntil = performance.now() + Math.max(2600, text.length * 60);
+  if (logIt) addLog('Patient', `“${text}”`);
+}
+function addLog(k, text, cls = '') {
+  logItems.unshift({ k, text, cls });
+  if (logItems.length > 30) logItems.pop();
+  renderLog();
+}
+function renderLog() {
+  const ul = $('#log');
+  if (!logItems.length) { ul.innerHTML = '<li class="empty">Nothing yet. Start examining.</li>'; return; }
+  ul.innerHTML = logItems.map((i) => `<li class="${i.cls}"><span class="k">${esc(i.k)}:</span> ${esc(i.text)}</li>`).join('');
+}
+
+/* ================= canvas ================= */
+const cv = $('#stage');
+const ctx = cv.getContext('2d');
+let cw = 600, ch = 400, dpr = 1;
+function resize() {
+  const r = cv.getBoundingClientRect();
+  cw = Math.max(200, r.width); ch = Math.max(160, r.height);
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+}
+if (window.ResizeObserver) new ResizeObserver(resize).observe(cv); else window.addEventListener('resize', resize);
+resize();
+
+const tok = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['stage', 'stage-ink', 'ink', 'panel', 'muted', 'trace']) tok[k] = cs.getPropertyValue('--' + k).trim() || '#888';
+}
+readTokens();
+if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+
+function vp() {
+  const W = cw, H = ch;
+  const sF = Math.min(H * 0.86 / 262, W * 0.9 / 190);
+  const sC = Math.min(W / 106, H / 46);
+  const t = ease(state.viewT);
+  return { s: lerp(sF, sC, t), ox: W / 2, oy: lerp(H * 0.43, H * 0.5, t), W, H };
+}
+function toScreen(v, x, y) {
+  const a = -sim.tilt * DEG, yy = y - 140;
+  return { x: v.ox + (x * Math.cos(a) - yy * Math.sin(a)) * v.s, y: v.oy + (x * Math.sin(a) + yy * Math.cos(a) + 140) * v.s };
+}
+function toFace(v, sx, sy) {
+  const x = (sx - v.ox) / v.s, y = (sy - v.oy) / v.s - 140, a = sim.tilt * DEG;
+  return { x: x * Math.cos(a) - y * Math.sin(a), y: x * Math.sin(a) + y * Math.cos(a) + 140 };
+}
+const gazeUnit = (v) => Math.min(v.W, v.H) * 0.42;
+const fieldUnit = (v) => Math.min(v.W, v.H) * 0.5;
+
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const t = amt < 0 ? 0 : 255, a = Math.abs(amt);
+  r = Math.round(r + (t - r) * a); g = Math.round(g + (t - g) * a); b = Math.round(b + (t - b) * a);
+  return `rgb(${r},${g},${b})`;
+}
+const irisCache = {};
+function irisTex(col) {
+  if (irisCache[col]) return irisCache[col];
+  const c = document.createElement('canvas');
+  c.width = c.height = 200;
+  const g = c.getContext('2d'), R = 100;
+  const rg = g.createRadialGradient(R, R, 8, R, R, R);
+  rg.addColorStop(0, shade(col, -0.45));
+  rg.addColorStop(0.3, shade(col, 0.18));
+  rg.addColorStop(0.62, col);
+  rg.addColorStop(0.88, shade(col, -0.25));
+  rg.addColorStop(0.95, shade(col, -0.55));
+  rg.addColorStop(1, shade(col, -0.7));
+  g.fillStyle = rg;
+  g.beginPath(); g.arc(R, R, R, 0, Math.PI * 2); g.fill();
+  for (let i = 0; i < 170; i++) {
+    const a = Math.random() * Math.PI * 2, r0 = 20 + Math.random() * 14, r1 = 60 + Math.random() * 30;
+    g.strokeStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.14)';
+    g.lineWidth = 0.8 + Math.random() * 1.6;
+    g.beginPath(); g.moveTo(R + Math.cos(a) * r0, R + Math.sin(a) * r0);
+    g.quadraticCurveTo(R + Math.cos(a + 0.08) * (r0 + r1) / 2, R + Math.sin(a + 0.08) * (r0 + r1) / 2, R + Math.cos(a) * r1, R + Math.sin(a) * r1);
+    g.stroke();
+  }
+  g.strokeStyle = 'rgba(255,240,210,0.18)'; g.lineWidth = 3;
+  g.beginPath(); g.arc(R, R, 38, 0, Math.PI * 2); g.stroke();
+  irisCache[col] = c;
+  return c;
+}
+function rr(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath();
+}
+
+/* ---------- patient drawing (face millimetres) ---------- */
+function drawBody(c, L, now) {
+  const [skin, sh, deep] = L.skin;
+  c.fillStyle = L.gown;
+  c.beginPath(); c.moveTo(-170, 300);
+  c.bezierCurveTo(-160, 190, -100, 152, -36, 142); c.lineTo(36, 142);
+  c.bezierCurveTo(100, 152, 160, 190, 170, 300); c.closePath(); c.fill();
+  c.save(); c.clip();
+  c.fillStyle = 'rgba(255,255,255,0.35)';
+  for (let y = 168; y < 300; y += 16) for (let x = -160 + ((y / 16) % 2) * 8; x < 160; x += 16) {
+    c.beginPath(); c.moveTo(x, y - 2.5); c.lineTo(x + 2.5, y); c.lineTo(x, y + 2.5); c.lineTo(x - 2.5, y); c.fill();
+  }
+  c.restore();
+  if (L.long) {
+    c.fillStyle = shade(L.hair, -0.08);
+    c.beginPath(); c.moveTo(-80, -30);
+    c.bezierCurveTo(-96, 40, -92, 110, -70, 140); c.lineTo(70, 140);
+    c.bezierCurveTo(92, 110, 96, 40, 80, -30); c.closePath(); c.fill();
+  }
+  c.fillStyle = sh;
+  c.beginPath(); c.moveTo(-28, 80); c.lineTo(-30, 146); c.quadraticCurveTo(0, 160, 30, 146); c.lineTo(28, 80); c.closePath(); c.fill();
+  c.strokeStyle = shade(L.gown, -0.2); c.lineWidth = 2.5;
+  c.beginPath(); c.moveTo(-36, 142); c.quadraticCurveTo(0, 176, 36, 142); c.stroke();
+  for (const sx of [-1, 1]) {
+    c.fillStyle = skin;
+    c.beginPath(); c.ellipse(sx * 75, 10, 9, 19, sx * 0.08, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = deep; c.globalAlpha = 0.35; c.lineWidth = 1.2;
+    c.beginPath(); c.ellipse(sx * 76, 10, 4.5, 12, sx * 0.08, 0, Math.PI * 2); c.stroke();
+    c.globalAlpha = 1;
+  }
+}
+function headPath(c) {
+  c.beginPath(); c.moveTo(0, -120);
+  c.bezierCurveTo(46, -120, 75, -84, 75, -30);
+  c.bezierCurveTo(75, 12, 72, 44, 63, 68);
+  c.bezierCurveTo(52, 96, 30, 118, 0, 120);
+  c.bezierCurveTo(-30, 118, -52, 96, -63, 68);
+  c.bezierCurveTo(-72, 44, -75, 12, -75, -30);
+  c.bezierCurveTo(-75, -84, -46, -120, 0, -120);
+  c.closePath();
+}
+function drawHead(c, L, now) {
+  const [skin, sh, deep] = L.skin;
+  headPath(c); c.fillStyle = skin; c.fill();
+  c.save(); headPath(c); c.clip();
+  const g = c.createRadialGradient(0, -10, 40, 0, 10, 110);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.13)');
+  c.fillStyle = g; c.fillRect(-80, -125, 160, 250);
+  c.restore();
+  // hair
+  c.fillStyle = L.hair;
+  if (!L.bald) {
+    c.beginPath(); c.moveTo(-77, -16);
+    c.bezierCurveTo(-82, -98, -44, -134, 0, -132);
+    c.bezierCurveTo(44, -134, 82, -98, 77, -16);
+    c.bezierCurveTo(72, -42, 64, -60, 48, -68);
+    c.bezierCurveTo(26, -78, -8, -80, -30, -71);
+    c.bezierCurveTo(-52, -63, -70, -44, -77, -16);
+    c.closePath(); c.fill();
+  } else {
+    for (const sx of [-1, 1]) {
+      c.beginPath(); c.moveTo(sx * 76, -2);
+      c.bezierCurveTo(sx * 80, -40, sx * 74, -66, sx * 60, -84);
+      c.bezierCurveTo(sx * 66, -60, sx * 68, -30, sx * 70, -2); c.closePath(); c.fill();
+    }
+  }
+  // eye sockets
+  for (const e of EYES) {
+    const sg = c.createRadialGradient(EX[e], -2, 4, EX[e], -2, 24);
+    sg.addColorStop(0, 'rgba(60,30,20,0.16)'); sg.addColorStop(1, 'rgba(60,30,20,0)');
+    c.fillStyle = sg; c.beginPath(); c.ellipse(EX[e], -2, 24, 18, 0, 0, Math.PI * 2); c.fill();
+  }
+  // brows (frontalis lifts the brow over a ptotic lid)
+  c.strokeStyle = L.hair === GREY ? '#8E8983' : shade(L.hair, -0.1);
+  c.lineWidth = 3.6; c.lineCap = 'round';
+  for (const e of EYES) {
+    const ex = EX[e], lat = SIGN[e];
+    const raise = Math.min(sim.ptosisEff[e] * 0.55, 4.2) * (state.lift ? 0.3 : 1);
+    const y0 = -17.5 - raise;
+    c.beginPath(); c.moveTo(ex - lat * 13, y0 + 2.6);
+    c.quadraticCurveTo(ex + lat * 1, y0 - 4, ex + lat * 17, y0 + 1.6); c.stroke();
+  }
+  // nose
+  c.strokeStyle = deep; c.globalAlpha = 0.32; c.lineWidth = 1.3;
+  c.beginPath(); c.moveTo(-7, -6); c.quadraticCurveTo(-9, 20, -12, 36); c.stroke();
+  c.beginPath(); c.moveTo(-14, 40); c.quadraticCurveTo(-13, 48, -5, 47);
+  c.moveTo(14, 40); c.quadraticCurveTo(13, 48, 5, 47); c.stroke();
+  c.globalAlpha = 0.55; c.fillStyle = deep;
+  c.beginPath(); c.ellipse(-6, 45.5, 3, 1.5, 0.2, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(6, 45.5, 3, 1.5, -0.2, 0, Math.PI * 2); c.fill();
+  c.globalAlpha = 0.18; c.fillStyle = '#ffffff';
+  c.beginPath(); c.ellipse(0, 36, 5, 4, 0, 0, Math.PI * 2); c.fill();
+  c.globalAlpha = 1;
+  // mouth
+  const talking = now < sim.sayUntil - 900;
+  const open = talking ? (0.5 + 0.5 * Math.sin(now * 0.028)) * 2.6 : 0;
+  c.fillStyle = shade(sh, -0.12);
+  c.beginPath(); c.moveTo(-19, 75);
+  c.quadraticCurveTo(-8, 70, 0, 72); c.quadraticCurveTo(8, 70, 19, 75);
+  c.quadraticCurveTo(0, 82 + open, -19, 75); c.closePath(); c.fill();
+  if (open > 0.3) {
+    c.fillStyle = 'rgba(40,10,10,0.75)';
+    c.beginPath(); c.ellipse(0, 76 + open * 0.3, 9, open * 0.9, 0, 0, Math.PI * 2); c.fill();
+  }
+  c.strokeStyle = deep; c.globalAlpha = 0.6; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(-19, 75); c.quadraticCurveTo(0, 76.5 + open * 0.6, 19, 75); c.stroke();
+  c.globalAlpha = 1;
+}
+
+function lidGeom(e) {
+  const ex = EX[e], lat = SIGN[e];
+  const hA = sim.dTh[e] * 40 * DEG, vA = sim.dTv[e] * 36 * DEG;
+  const ix = lat * Math.sin(hA) * 11.5, iy = Math.sin(vA) * 11.5;
+  let U = 4.7 - sim.ptosisEff[e] + 0.8 * iy;
+  if (state.lift) U = Math.max(U, 5.3 + 0.8 * iy);
+  const Lo = 5.4 - P.lowerLift[e] - 0.3 * iy;
+  U = Math.max(U, -Lo + 0.4);
+  const closeAmt = state.iceAnim > 0 ? 1 : state.lift ? 0 : sim.blink;
+  if (closeAmt > 0) U = lerp(U, -Lo + 0.4, closeAmt);
+  const mx = ex - lat * 13.5, my = 1.0, lx = ex + lat * 14.5, ly = -0.9;
+  return {
+    ex, lat, hA, vA, ix, iy, U, Lo, mx, my, lx, ly,
+    apx: ex + lat * 1.2, cuy: 2 * -U - (my + ly) / 2,
+    clx: ex - lat * 0.5, cly: 2 * Lo - (my + ly) / 2
+  };
+}
+function drawEye(c, e) {
+  const L = P.look, g = lidGeom(e);
+  const { ex, lat, hA, vA, ix, iy, mx, my, lx, ly, apx, cuy, clx, cly } = g;
+  c.save();
+  c.beginPath(); c.moveTo(mx, my); c.quadraticCurveTo(apx, cuy, lx, ly); c.quadraticCurveTo(clx, cly, mx, my); c.closePath();
+  c.clip();
+  const sg = c.createRadialGradient(ex + ix * 0.3, -iy * 0.3, 2, ex, 0, 16);
+  sg.addColorStop(0, '#FBF7F2'); sg.addColorStop(0.7, '#EEE4D9'); sg.addColorStop(1, '#D6C5B5');
+  c.fillStyle = sg; c.fillRect(ex - 17, -15, 34, 30);
+  c.fillStyle = 'rgba(214,120,120,0.5)';
+  c.beginPath(); c.ellipse(mx + lat * 1.7, my - 0.2, 1.9, 1.5, 0, 0, Math.PI * 2); c.fill();
+  const rx = Math.max(5.9 * Math.cos(hA), 0.6), ry = Math.max(5.9 * Math.cos(vA), 0.6);
+  c.save(); c.translate(ex + ix, -iy); c.scale(rx / 5.9, ry / 5.9);
+  c.drawImage(irisTex(L.iris), -5.9, -5.9, 11.8, 11.8);
+  const pr = sim.d[e] / 2;
+  c.fillStyle = '#07080B';
+  c.beginPath();
+  if (P.irregular[e]) {
+    const pts = P.irr[e];
+    for (let i = 0; i < pts.length; i++) {
+      const a = (i / pts.length) * Math.PI * 2, r = pr * pts[i];
+      if (i === 0) c.moveTo(Math.cos(a) * r, Math.sin(a) * r); else c.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    c.closePath();
+  } else c.arc(0, 0, pr, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+  const lg = c.createLinearGradient(0, -g.U, 0, -g.U + 3.4);
+  lg.addColorStop(0, 'rgba(40,20,10,0.4)'); lg.addColorStop(1, 'rgba(40,20,10,0)');
+  c.fillStyle = lg; c.fillRect(ex - 17, -g.U - 1, 34, 5);
+  // corneal light reflexes stay fixed relative to the socket, so a deviated eye shows a decentred reflex (Hirschberg)
+  const onCornea = (x, y) => ((x - (ex + ix)) / rx) ** 2 + ((y + iy) / ry) ** 2 < 1;
+  if (state.lights) {
+    const x0 = ex - 1.6, y0 = -2.1, on = onCornea(x0, y0);
+    c.fillStyle = on ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.4)';
+    c.beginPath(); c.ellipse(x0, y0, on ? 0.8 : 0.5, on ? 0.6 : 0.4, -0.5, 0, Math.PI * 2); c.fill();
+  }
+  const It = sim.torchI[e];
+  if (It > 0.04 && state.tool === 'torch' && state.torch.on) {
+    let vx = (state.torchFace.x - ex) * 0.06, vy = state.torchFace.y * 0.06;
+    const m = Math.hypot(vx, vy); if (m > 3.2) { vx *= 3.2 / m; vy *= 3.2 / m; }
+    const x0 = ex + vx, y0 = vy;
+    const rg = c.createRadialGradient(x0, y0, 0, x0, y0, 1.6);
+    const al = Math.min(1, It) * (onCornea(x0, y0) ? 1 : 0.45);
+    rg.addColorStop(0, `rgba(255,255,255,${al})`); rg.addColorStop(1, 'rgba(255,255,240,0)');
+    c.fillStyle = rg; c.beginPath(); c.arc(x0, y0, 1.6, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+  // lids
+  const deep = L.skin[2];
+  c.lineCap = 'round';
+  c.strokeStyle = 'rgba(55,30,20,0.85)'; c.lineWidth = 0.85;
+  c.beginPath(); c.moveTo(mx, my); c.quadraticCurveTo(apx, cuy, lx, ly); c.stroke();
+  c.lineWidth = 0.45; c.beginPath();
+  for (let i = 1; i <= 10; i++) {
+    const t = 0.12 + i * 0.075, u = 1 - t;
+    const x = u * u * mx + 2 * u * t * apx + t * t * lx, y = u * u * my + 2 * u * t * cuy + t * t * ly;
+    c.moveTo(x, y); c.lineTo(x + lat * 0.9 * t, y - 1.5 - 0.5 * t);
+  }
+  c.stroke();
+  c.strokeStyle = 'rgba(90,50,35,0.35)'; c.lineWidth = 0.5;
+  c.beginPath(); c.moveTo(mx, my); c.quadraticCurveTo(clx, cly, lx, ly); c.stroke();
+  const cr = 8.8 + 0.6 * iy;
+  c.strokeStyle = deep; c.globalAlpha = 0.35; c.lineWidth = 0.6;
+  c.beginPath(); c.moveTo(mx + lat * 1.5, my - 2.6);
+  c.quadraticCurveTo(apx, 2 * -cr - (my - 2.6 + ly - 2.2) / 2, lx - lat * 1.0, ly - 2.2); c.stroke();
+  c.globalAlpha = 1;
+}
+function drawHandsFace(c) {
+  const L = P.look;
+  if (state.tool === 'cover' && state.cover) {
+    const e = state.cover, ex = EX[e], lat = SIGN[e];
+    c.strokeStyle = '#262A35'; c.lineWidth = 5; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(ex + lat * 6, 8); c.lineTo(ex + lat * 30, 92); c.stroke();
+    c.fillStyle = '#262A35';
+    c.beginPath(); c.ellipse(ex, -0.5, 18, 14, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.12)';
+    c.beginPath(); c.ellipse(ex - 5, -6, 7, 3.5, -0.4, 0, Math.PI * 2); c.fill();
+  }
+  if (state.tool === 'fields' && state.handCover) {
+    const e = state.handCover, ex = EX[e], lat = SIGN[e];
+    const [skin, sh, deep] = L.skin;
+    c.fillStyle = skin; c.strokeStyle = shade(sh, -0.15); c.lineWidth = 1.2;
+    for (let i = 0; i < 4; i++) {
+      c.save(); c.translate(ex + lat * (-8 + i * 6.5), -6); c.rotate(lat * (-0.25 + i * 0.12));
+      rr(c, -3.4, -30 + i * 2, 6.8, 30, 3.4); c.fill(); c.stroke(); c.restore();
+    }
+    c.beginPath(); c.ellipse(ex + lat * 3, 4, 20, 17, lat * 0.2, 0, Math.PI * 2); c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(ex + lat * 18, 14); c.quadraticCurveTo(ex + lat * 40, 40, ex + lat * 34, 80);
+    c.lineTo(ex + lat * 14, 80); c.quadraticCurveTo(ex + lat * 12, 40, ex + lat * 6, 20); c.closePath(); c.fill();
+  }
+  if (state.lift) {
+    for (const e of EYES) {
+      const ex = EX[e];
+      c.fillStyle = GLOVE; c.strokeStyle = GLOVE_DK; c.lineWidth = 1;
+      rr(c, ex - 9, -21, 18, 8, 4); c.fill(); c.stroke();
+    }
+  }
+  if (state.iceAnim > 0) {
+    c.fillStyle = '#BFE3F5'; c.strokeStyle = '#7FB8D8'; c.lineWidth = 1.5;
+    rr(c, -58, -16, 116, 26, 9); c.fill(); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.6)';
+    for (let i = 0; i < 6; i++) { c.beginPath(); c.arc(-44 + i * 17, -4 + (i % 2) * 4, 2.2, 0, Math.PI * 2); c.fill(); }
+  }
+}
+
+/* ---------- screen-space props ---------- */
+function drawPen(c, x, y, sc) {
+  c.save(); c.translate(x, y); c.scale(sc, sc); c.rotate(0.16);
+  c.fillStyle = '#2E8B77'; rr(c, -4.5, 8, 9, 74, 3); c.fill();
+  c.fillStyle = '#1D2340'; rr(c, -4.5, 8, 9, 15, 2); c.fill();
+  c.fillStyle = '#E9E4DA'; c.beginPath(); c.moveTo(-4.5, 8.5); c.lineTo(0, -1); c.lineTo(4.5, 8.5); c.closePath(); c.fill();
+  c.fillStyle = '#D7263D'; c.beginPath(); c.arc(0, -2, 3.4, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = '#ffffff'; c.lineWidth = 1.2; c.stroke();
+  c.restore();
+}
+function drawTorch(c, x, y) {
+  c.save(); c.translate(x + 30, y + 34); c.rotate(-0.72);
+  c.fillStyle = '#B9BFCC'; rr(c, -5, -6, 72, 12, 5); c.fill();
+  c.fillStyle = '#8D94A5'; rr(c, 24, -6, 6, 12, 1); c.fill();
+  c.fillStyle = '#FFF3C4'; c.beginPath(); c.ellipse(-5, 0, 2.5, 5, 0, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+function drawFingers(c, f, now) {
+  const t = (now - f.t0) / 1000;
+  if (t > 1.5) return;
+  const wig = Math.sin(now * 0.05) * 0.35 * (t < 1.2 ? 1 : 0);
+  c.save(); c.translate(f.x, f.y + 14);
+  c.globalAlpha = t > 1.2 ? (1.5 - t) / 0.3 : 1;
+  c.fillStyle = GLOVE; c.strokeStyle = GLOVE_DK; c.lineWidth = 1.2;
+  for (const [dx, a] of [[-4, wig], [5, -wig * 0.8]]) {
+    c.save(); c.translate(dx, 0); c.rotate(a); rr(c, -3.5, -24, 7, 24, 3.5); c.fill(); c.stroke(); c.restore();
+  }
+  rr(c, -10, -2, 22, 22, 8); c.fill(); c.stroke();
+  c.restore();
+}
+function wrapText(c, text, maxW) {
+  const words = text.split(' '), lines = [];
+  let line = '';
+  for (const w of words) {
+    const t = line ? line + ' ' + w : w;
+    if (c.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+function drawBubble(c, v, now) {
+  if (!sim.say || now > sim.sayUntil) return;
+  const left = sim.sayUntil - now;
+  const alpha = left < 300 ? left / 300 : 1;
+  c.save(); c.globalAlpha = alpha;
+  c.font = '600 14px Figtree, system-ui, sans-serif';
+  const maxW = Math.min(250, v.W * 0.56);
+  const lines = wrapText(c, sim.say, maxW - 24);
+  const w = Math.min(maxW, Math.max(...lines.map((l) => c.measureText(l).width)) + 24);
+  const h = lines.length * 19 + 16;
+  const x = v.W - w - 12, y = 12;
+  c.fillStyle = '#FFFFFF'; c.strokeStyle = 'rgba(29,35,64,0.25)'; c.lineWidth = 1;
+  rr(c, x, y, w, h, 12); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(x + 18, y + h - 0.5); c.lineTo(x + 6, y + h + 12); c.lineTo(x + 32, y + h - 0.5); c.closePath(); c.fill();
+  c.fillStyle = '#1D2340';
+  lines.forEach((l, i) => c.fillText(l, x + 12, y + 23 + i * 19));
+  c.restore();
+}
+
+function draw(v, now) {
+  const c = ctx;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.fillStyle = tok.stage; c.fillRect(0, 0, v.W, v.H);
+  c.fillStyle = 'rgba(0,0,0,0.05)'; c.fillRect(0, v.H * 0.78, v.W, v.H * 0.22);
+  if (!P) return;
+  c.save();
+  c.translate(v.ox, v.oy); c.scale(v.s, v.s);
+  c.translate(0, 140); c.rotate(-sim.tilt * DEG); c.translate(0, -140);
+  drawBody(c, P.look, now);
+  drawHead(c, P.look, now);
+  drawEye(c, 'R'); drawEye(c, 'L');
+  drawHandsFace(c);
+  c.restore();
+
+  const mid = toScreen(v, 0, 0), G = gazeUnit(v);
+  if (!state.lights) {
+    if (state.tool === 'torch' && state.torch.on) {
+      const R = Math.max(60, 46 * v.s);
+      const g = c.createRadialGradient(state.torch.x, state.torch.y, 0, state.torch.x, state.torch.y, R);
+      g.addColorStop(0, 'rgba(6,8,16,0)'); g.addColorStop(0.5, 'rgba(6,8,16,0.3)'); g.addColorStop(1, 'rgba(6,8,16,0.64)');
+      c.fillStyle = g;
+    } else c.fillStyle = 'rgba(6,8,16,0.64)';
+    c.fillRect(0, 0, v.W, v.H);
+  }
+  if (state.tool === 'torch' && state.torch.on) {
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const R = Math.max(30, 24 * v.s);
+    const g = c.createRadialGradient(state.torch.x, state.torch.y, 0, state.torch.x, state.torch.y, R);
+    g.addColorStop(0, 'rgba(255,246,215,0.55)'); g.addColorStop(1, 'rgba(255,246,215,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(state.torch.x, state.torch.y, R, 0, Math.PI * 2); c.fill();
+    c.restore();
+    drawTorch(c, state.torch.x, state.torch.y);
+  }
+  if (state.tool === 'pen' || state.tool === 'cover') {
+    const n = sim.near;
+    const px = lerp(mid.x + state.pen.x * G, mid.x, n), py = lerp(mid.y - state.pen.y * G, mid.y + 22 * v.s, n);
+    drawPen(c, px, py, (Math.min(v.W, v.H) / 420) * (1 + n * 1.1));
+  }
+  if (state.tool === 'fields' && state.fingers) drawFingers(c, state.fingers, now);
+  // patient side labels
+  c.font = '600 12px Figtree, system-ui, sans-serif';
+  c.fillStyle = state.lights ? tok['stage-ink'] : '#C9D3E8';
+  c.textBaseline = 'alphabetic';
+  c.textAlign = 'left'; c.fillText("◀ Patient's right", 12, v.H - 12);
+  c.textAlign = 'right'; c.fillText("Patient's left ▶", v.W - 12, v.H - 12);
+  c.textAlign = 'left';
+  if (state.gauge) {
+    c.font = '700 12px ui-monospace, Menlo, monospace';
+    for (const e of EYES) {
+      const p = state.viewT > 0.5 ? toScreen(v, EX[e], 15) : toScreen(v, EX[e] + SIGN[e] * 16, 20);
+      const t = `${(Math.round(sim.d[e] * 2) / 2).toFixed(1)} mm`;
+      const w = c.measureText(t).width + 12;
+      c.fillStyle = 'rgba(29,35,64,0.82)'; rr(c, p.x - w / 2, p.y - 2, w, 19, 9); c.fill();
+      c.fillStyle = '#FFFFFF'; c.textAlign = 'center'; c.fillText(t, p.x, p.y + 12); c.textAlign = 'left';
+    }
+  }
+  drawBubble(c, v, now);
+}
+
+/* ---------- the patient's view ---------- */
+const pv = $('#pv');
+const pvc = pv.getContext('2d');
+const pvBuf = document.createElement('canvas'); pvBuf.width = 480; pvBuf.height = 270;
+const pbc = pvBuf.getContext('2d');
+function drawPV() {
+  const W = 480, H = 270, b = pbc, k = (W / 2) * 0.78;
+  const wall = b.createLinearGradient(0, 0, 0, H);
+  wall.addColorStop(0, '#EEE9E0'); wall.addColorStop(1, '#DAD2C4');
+  b.fillStyle = wall; b.fillRect(0, 0, W, H);
+  b.fillStyle = '#CDBFAA'; b.fillRect(0, 214, W, 56);
+  b.fillStyle = '#FFFFFF'; b.fillRect(340, 26, 104, 78);
+  b.fillStyle = '#CFE3EE'; b.fillRect(346, 32, 44, 66); b.fillRect(394, 32, 44, 66);
+  b.fillStyle = '#8FA7B8'; b.fillRect(40, 40, 58, 82);
+  b.fillStyle = '#E9E4DA'; b.fillRect(46, 46, 46, 18); b.fillRect(46, 70, 46, 12); b.fillRect(46, 88, 46, 12);
+  // examiner
+  b.fillStyle = '#2E8B77';
+  b.beginPath(); b.moveTo(160, 270); b.bezierCurveTo(166, 190, 200, 168, 240, 166); b.bezierCurveTo(280, 168, 314, 190, 320, 270); b.closePath(); b.fill();
+  b.fillStyle = '#D8A985'; b.beginPath(); b.ellipse(240, 118, 30, 37, 0, 0, Math.PI * 2); b.fill();
+  b.fillStyle = '#3B2618'; b.beginPath(); b.ellipse(240, 92, 32, 18, 0, Math.PI, Math.PI * 2); b.fill();
+  b.fillStyle = '#1D2340'; b.beginPath(); b.arc(229, 116, 2.6, 0, 7); b.arc(251, 116, 2.6, 0, 7); b.fill();
+  const tool = state.tool;
+  if (tool === 'pen' || tool === 'cover') {
+    const fx = -state.pen.x * (1 - sim.near), fy = state.pen.y * (1 - sim.near);
+    const x = W / 2 + fx * k, y = H / 2 - fy * k;
+    b.strokeStyle = '#2E8B77'; b.lineWidth = 14; b.lineCap = 'round';
+    b.beginPath(); b.moveTo(fx > 0 ? 300 : 180, 200); b.lineTo(x, y + 40 * (1 + sim.near)); b.stroke();
+    b.fillStyle = GLOVE; b.beginPath(); b.arc(x, y + 38 * (1 + sim.near), 9 * (1 + sim.near * 0.6), 0, 7); b.fill();
+    drawPen(b, x, y, 0.75 + sim.near * 0.9);
+  }
+  const ctxv = pvc;
+  ctxv.setTransform(1, 0, 0, 1, 0, 0);
+  ctxv.clearRect(0, 0, W, H);
+  ctxv.drawImage(pvBuf, 0, 0);
+  const open = EYES.filter((e) => sim.canSee[e]);
+  let cap = '';
+  if (open.length === 2 && sim.dip !== 'single') {
+    const nf = OTHER[sim.fix], er = sim.err[nf];
+    ctxv.globalAlpha = 0.48;
+    ctxv.drawImage(pvBuf, -er.x * k, er.y * k);
+    ctxv.globalAlpha = 1;
+  }
+  // field loss
+  const cols = 60, rows = 34, cwid = W / cols, chei = H / rows;
+  for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+    const x = ((i + 0.5) * cwid - W / 2) / (W / 2), y = -((j + 0.5) * chei - H / 2) / (W / 2);
+    let s = 0;
+    for (const e of open) s = Math.max(s, seenBy(P, e, x, y));
+    if (s < 0.1) { ctxv.fillStyle = 'rgba(12,12,16,0.94)'; ctxv.fillRect(i * cwid, j * chei, cwid + 0.6, chei + 0.6); }
+    else if (s < 0.9) { ctxv.fillStyle = 'rgba(150,150,150,0.62)'; ctxv.fillRect(i * cwid, j * chei, cwid + 0.6, chei + 0.6); }
+  }
+  if (open.length === 1 && P.afferent[open[0]] < 0.95) {
+    ctxv.fillStyle = `rgba(160,160,160,${(1 - P.afferent[open[0]]) * 0.55})`; ctxv.fillRect(0, 0, W, H);
+  }
+  if (!state.lights) { ctxv.fillStyle = 'rgba(6,8,16,0.55)'; ctxv.fillRect(0, 0, W, H); }
+  const vg = ctxv.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, W * 0.62);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.35)');
+  ctxv.fillStyle = vg; ctxv.fillRect(0, 0, W, H);
+  if (!open.length) cap = 'Both eyes are covered or shut.';
+  else if (open.length === 1) cap = `Seeing with the ${EYE_NAME[open[0]]} eye only.`;
+  else cap = sim.dip === 'single' ? 'Single vision with both eyes.' : `Double vision: ${dipPhrase()}.`;
+  if (state.tool !== 'pen' && state.tool !== 'cover') cap += ' Looking at your face.';
+  const capEl = $('#pvcap');
+  if (capEl.textContent !== cap) capEl.textContent = cap;
+}
+
+/* ================= simulation step ================= */
+function fixTarget() {
+  if (state.tool === 'pen' || state.tool === 'cover') {
+    const n = sim.near;
+    return { x: state.pen.x * (1 - n), y: state.pen.y * (1 - n) - 0.05 * n };
+  }
+  return { x: 0, y: 0 };
+}
+function coveredEye() {
+  if (state.tool === 'cover') return state.cover;
+  if (state.tool === 'fields') return state.handCover;
+  return null;
+}
+function dipPhrase() {
+  const ax = Math.abs(sim.disp.x), ay = Math.abs(sim.disp.y), m = Math.hypot(ax, ay);
+  const orient = ay < 0.45 * ax ? 'side by side' : ax < 0.45 * ay ? 'one above the other' : 'one diagonally above the other';
+  const size = m < 0.12 ? 'slightly apart' : m > 0.32 ? 'far apart' : '';
+  return `two pens, ${orient}${size ? ', ' + size : ''}`;
+}
+function dipKey() {
+  if (sim.dip === 'single') return 'single';
+  const ax = Math.abs(sim.disp.x), ay = Math.abs(sim.disp.y), m = Math.hypot(ax, ay);
+  return (ay < 0.45 * ax ? 'h' : ax < 0.45 * ay ? 'v' : 'd') + (m < 0.12 ? 's' : m > 0.32 ? 'l' : 'm');
+}
+function dipSentence() {
+  if (sim.dip === 'single') return 'Just one pen.';
+  const s = dipPhrase();
+  return s.charAt(0).toUpperCase() + s.slice(1) + '.';
+}
+
+function step(dt, now) {
+  const p = P;
+  state.viewT += ((state.view === 'close' ? 1 : 0) - state.viewT) * (1 - Math.exp(-dt / (reduceMotion ? 0.02 : 0.12)));
+  if (state.viewT > 0.9) track.closeTime += dt;
+  sim.near = clamp(sim.near + (state.nearHold && state.tool === 'pen' ? 1.6 : -2.2) * dt, 0, 1);
+  if (sim.near > 0.85) track.near = true;
+  const tiltDeg = state.posture === 'habit' ? p.tiltHabit : state.posture === 'straight' ? 0 : state.posture === 'R' ? 14 : -14;
+  sim.tilt += (tiltDeg - sim.tilt) * (1 - Math.exp(-dt / 0.25));
+
+  const g = fixTarget();
+  if (p.mg) {
+    const ecc = Math.abs(g.x) > 0.55 || Math.abs(g.y) > 0.45;
+    sim.fatE = clamp(sim.fatE + (ecc ? 0.2 : -0.09) * dt, 0, 1);
+    sim.fatUp = clamp(sim.fatUp + (g.y > 0.4 ? 0.22 : -0.07) * dt, 0, 1);
+    if (sim.fatUp > 0.55 && !sim.mgSaid) { sim.mgSaid = true; say('My eyelids feel heavy.'); }
+  }
+  if (g.y > 0.45 && state.tool === 'pen') { sim.upHold += dt; if (sim.upHold > 4) track.fatigue = true; } else sim.upHold = 0;
+  if (state.ice > 0) state.ice = Math.max(0, state.ice - dt);
+  if (state.iceAnim > 0) {
+    state.iceAnim = Math.max(0, state.iceAnim - dt);
+    if (state.iceAnim === 0 && !state.iceDone) {
+      state.iceDone = true;
+      if (p.mg) { sim.fatUp = 0; say("That's lifted a bit."); addLog('Ice pack', 'Ptosis improved by about 2 mm after cooling.', 'res'); }
+      else { say('Cold! No different though.'); addLog('Ice pack', 'No change in the lids.', 'res'); }
+    }
+  }
+  for (const e of EYES) {
+    let pt = p.ptosis[e];
+    if (p.mg) pt += p.mg.ptosis[e] + p.mg.fat[e] * sim.fatUp - (state.ice > 0 ? 2.4 * Math.min(1, state.ice / 6) : 0);
+    sim.ptosisEff[e] = Math.max(0, pt);
+  }
+
+  const covered = coveredEye();
+  for (const e of EYES) sim.canSee[e] = covered !== e && !(sim.ptosisEff[e] >= 6 && !state.lift) && state.iceAnim <= 0;
+  let fix = p.pref;
+  if (!sim.canSee[fix] && sim.canSee[OTHER[fix]]) fix = OTHER[fix];
+  sim.fix = fix;
+
+  const bias = { R: 0, L: 0 };
+  if (p.cn4) {
+    const e = p.cn4;
+    const toward = (e === 'R' && sim.tilt > 4) || (e === 'L' && sim.tilt < -4);
+    const away = (e === 'R' && sim.tilt < -4) || (e === 'L' && sim.tilt > 4);
+    bias[e] = toward ? 0.1 : away ? -0.03 : 0;
+  }
+  const c = sim.near * 0.38;
+  const sol = solveGaze(p, fix, g.x, g.y, c, bias);
+
+  sim.jitT -= dt;
+  if (sim.jitT <= 0) { sim.jitT = 0.5 + Math.random() * 0.9; sim.jit = { x: (Math.random() - 0.5) * 0.016, y: (Math.random() - 0.5) * 0.012 }; }
+  const k = 1 - Math.exp(-dt / 0.065);
+  sim.nyPhase += dt * 3.2;
+  for (const e of EYES) {
+    sim.th[e] += (sol.th[e] + SIGN[e] * sim.jit.x - sim.th[e]) * k;
+    sim.tv[e] += (sol.tv[e] + sim.jit.y - sim.tv[e]) * k;
+    let off = 0;
+    if (p.inoNyst[e] && sim.th[e] > 0.42) {
+      const A = 0.03 + (sim.th[e] - 0.42) * 0.14, f = sim.nyPhase % 1;
+      off = f < 0.85 ? -A * (f / 0.85) : -A * ((1 - f) / 0.15);
+    }
+    sim.dTh[e] = sim.th[e] + off;
+    sim.dTv[e] = sim.tv[e];
+  }
+
+  // double vision, in patient coordinates (x towards patient's right)
+  for (const e of EYES) {
+    const px = (e === 'R' ? 1 : -1) * sim.th[e];
+    const tx = -g.x + (e === 'R' ? -c : c);
+    sim.err[e] = { x: px - tx, y: sim.tv[e] - g.y };
+  }
+  sim.disp = { x: sim.err.R.x - sim.err.L.x, y: sim.err.R.y - sim.err.L.y };
+  sim.dip = sim.canSee.R && sim.canSee.L && Math.hypot(sim.disp.x, sim.disp.y) > 0.04 ? 'double' : 'single';
+  if (state.tool === 'pen' && state.penHeld) {
+    const key = dipKey();
+    if (key !== sim.lastDipSaid && now - sim.lastDipT > 700) { sim.lastDipSaid = key; sim.lastDipT = now; say(dipSentence()); }
+  }
+  if (p.pain && state.tool === 'pen' && Math.hypot(g.x, g.y) > 0.75 && now - sim.lastPain > 8000) {
+    sim.lastPain = now; say(`Ow, that aches behind my ${EYE_NAME[p.pain]} eye.`);
+  }
+
+  // pupils
+  const amb = state.lights ? 0.45 : 0.05;
+  for (const e of EYES) {
+    let It = 0;
+    if (state.tool === 'torch' && state.torch.on) {
+      const dmm = Math.hypot(state.torchFace.x - EX[e], state.torchFace.y);
+      It = 2.0 * Math.exp(-((dmm / 20) ** 2));
+    }
+    let I = amb + It;
+    if (covered === e || state.iceAnim > 0) { I = 0.03; It = 0; }
+    else if (sim.ptosisEff[e] >= 6 && !state.lift) { I *= 0.15; It *= 0.15; }
+    sim.torchI[e] = It; sim.light[e] = I;
+  }
+  const raw = (p.afferent.R * sim.light.R + p.afferent.L * sim.light.L) / 2;
+  const sL = raw / (raw + 0.3);
+  for (const e of EYES) {
+    const cst = clamp(p.lightEff[e] * sL + p.nearEff[e] * 0.45 * sim.near, 0, 1);
+    const target = p.dMax[e] - (p.dMax[e] - p.dMin[e]) * cst;
+    const tau = target < sim.d[e] ? p.tauC[e] : p.tauD[e];
+    sim.d[e] += (target - sim.d[e]) * (1 - Math.exp(-dt / tau));
+  }
+  const lit = sim.torchI.R > 1.0 ? 'R' : sim.torchI.L > 1.0 ? 'L' : null;
+  if (lit === 'R') track.litR += dt;
+  if (lit === 'L') track.litL += dt;
+  if (lit && track.lastLit && lit !== track.lastLit && now - track.lastLitT < 2000) track.swings.push(now);
+  if (lit) { track.lastLit = lit; track.lastLitT = now; }
+
+  // blinks
+  if (state.lift || state.iceAnim > 0) { sim.blink = 0; sim.blinkPhase = 0; }
+  else {
+    if (sim.blinkPhase === 0) { sim.blinkT -= dt; if (sim.blinkT <= 0) sim.blinkPhase = 1e-4; }
+    if (sim.blinkPhase > 0) {
+      sim.blinkPhase += dt;
+      const t = sim.blinkPhase;
+      sim.blink = t < 0.07 ? t / 0.07 : t < 0.19 ? 1 - (t - 0.07) / 0.12 : 0;
+      if (t >= 0.19) { sim.blinkPhase = 0; sim.blinkT = 2.5 + Math.random() * 4; sim.blink = 0; }
+    }
+  }
+}
+
+/* ================= interaction ================= */
+function local(ev) { const r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+function recordH(x, y) {
+  const r = Math.hypot(x, y);
+  if (r < 0.2) track.H.add('C');
+  else if (r > 0.6) track.H.add('S' + (((Math.round(Math.atan2(y, x) / (Math.PI / 4)) % 8) + 8) % 8));
+}
+function setPen(pt) {
+  const v = vp(), mid = toScreen(v, 0, 0), G = gazeUnit(v);
+  state.pen = { x: clamp((pt.x - mid.x) / G, -1.1, 1.1), y: clamp(-(pt.y - mid.y) / G, -1.1, 1.1) };
+  recordH(state.pen.x, state.pen.y);
+}
+function presentFingers(pt) {
+  const v = vp(), mid = toScreen(v, 0, 0), U = fieldUnit(v);
+  const fx = -(pt.x - mid.x) / U, fy = -(pt.y - mid.y) / U;
+  const now = performance.now();
+  state.fingers = { x: pt.x, y: pt.y, t0: now };
+  const open = EYES.filter((e) => state.handCover !== e && sim.canSee[e]);
+  let s = 0;
+  for (const e of open) s = Math.max(s, seenBy(P, e, fx, fy));
+  if (state.handCover) {
+    const te = OTHER[state.handCover];
+    if (Math.hypot(fx, fy) > 0.25) track.fields.add(te + (fy > 0 ? 'S' : 'I') + ((te === 'R' ? fx > 0 : fx < 0) ? 'T' : 'N'));
+  }
+  const yes = ['Yes, I can see it moving.', 'Yes.', 'Yes, I see that.'];
+  const no = ['No, nothing there.', "I can't see it.", 'No.'];
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const msg = !open.length ? "I can't see anything with this eye shut." : s >= 0.9 ? pick(yes) : s <= 0.1 ? pick(no) : "There's something, but it's blurry.";
+  setTimeout(() => say(msg), 380);
+}
+function hitEye(pt) {
+  const v = vp();
+  let best = null, bd = 1e9;
+  for (const e of EYES) {
+    const s = toScreen(v, EX[e], 0), d = Math.hypot(pt.x - s.x, pt.y - s.y);
+    if (d < bd) { bd = d; best = e; }
+  }
+  return bd < Math.max(44, 30 * v.s) ? best : null;
+}
+let dragging = false;
+cv.addEventListener('pointerdown', (ev) => {
+  if (!P) return;
+  ev.preventDefault();
+  try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+  dragging = true;
+  const pt = local(ev);
+  if (state.tool === 'pen') { state.penHeld = true; setPen(pt); }
+  else if (state.tool === 'torch') {
+    state.torch = { on: true, x: pt.x, y: pt.y };
+    state.torchFace = toFace(vp(), pt.x, pt.y);
+    if (!sim.brightSaid) { sim.brightSaid = true; setTimeout(() => say("That's bright!", false), 250); }
+  } else if (state.tool === 'cover') {
+    const e = hitEye(pt);
+    if (e) {
+      state.cover = state.cover === e ? null : e;
+      if (state.cover === 'R') track.coverR = true;
+      if (state.cover === 'L') track.coverL = true;
+    }
+  } else if (state.tool === 'fields') presentFingers(pt);
+});
+cv.addEventListener('pointermove', (ev) => {
+  if (!dragging || !P) return;
+  const pt = local(ev);
+  if (state.tool === 'pen') setPen(pt);
+  else if (state.tool === 'torch') { state.torch.x = pt.x; state.torch.y = pt.y; }
+});
+function endDrag() {
+  if (!dragging) return;
+  dragging = false;
+  if (state.tool === 'pen' && state.penHeld) {
+    state.penHeld = false;
+    setTimeout(() => { const k = dipKey(); sim.lastDipSaid = k; say(dipSentence()); }, 160);
+  }
+  if (state.tool === 'torch') state.torch.on = false;
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('lostpointercapture', endDrag);
+cv.addEventListener('keydown', (ev) => {
+  if (state.tool !== 'pen') return;
+  const d = { ArrowLeft: [-0.1, 0], ArrowRight: [0.1, 0], ArrowUp: [0, 0.1], ArrowDown: [0, -0.1] }[ev.key];
+  if (!d) return;
+  ev.preventDefault();
+  state.pen.x = clamp(state.pen.x + d[0], -1.1, 1.1);
+  state.pen.y = clamp(state.pen.y + d[1], -1.1, 1.1);
+  recordH(state.pen.x, state.pen.y);
+});
+
+/* ---------- toolbar, sub-actions, more tests ---------- */
+const HINTS = {
+  pen: '<b>Drag the pen</b> and the patient follows it. Trace a big H, pausing at each corner. Watch for lag and nystagmus; the patient tells you when it goes double.',
+  torch: '<b>Press and hold</b> on an eye to shine the torch, then drag across to <b>swing</b> between the eyes. Dim the room lights first.',
+  cover: '<b>Tap an eye</b> to cover it while the patient looks at your pen. If the other eye moves to pick up the pen, it was deviated.',
+  fields: 'Pick which eye the patient covers, then <b>tap around the face</b> to wiggle your fingers in each quadrant.'
+};
+function renderSub() {
+  const sub = $('#sub');
+  const t = state.tool;
+  let h = '';
+  if (t === 'pen') {
+    h = '<button type="button" class="chip hold" id="s-near">Hold: bring the pen close</button><button type="button" class="chip" id="s-centre">Centre the pen</button>';
+  } else if (t === 'torch') {
+    h = '<span class="lab">Tip</span><span class="hint" style="min-height:0">Swing steadily, pausing about a second on each eye.</span>';
+  } else if (t === 'cover') {
+    h = '<button type="button" class="chip" id="s-uncover">Remove the occluder</button>';
+  } else if (t === 'fields') {
+    h = '<span class="lab">Patient covers</span>' +
+      ['L', 'R', ''].map((e) => `<button type="button" class="chip" data-hand="${e}" aria-pressed="${state.handCover === (e || null)}">${e ? `${EYE_NAME[e]} eye` : 'Neither'}</button>`).join('') +
+      '<button type="button" class="chip" id="s-face">Ask: "Is any part of my face missing?"</button>';
+  }
+  sub.innerHTML = h;
+  $('#hint').innerHTML = HINTS[t];
+  const near = $('#s-near');
+  if (near) {
+    const on = (ev) => { ev.preventDefault(); state.nearHold = true; near.classList.add('on'); };
+    const off = () => { if (state.nearHold && sim.near > 0.3 && !sim.nearSaid) { sim.nearSaid = true; } state.nearHold = false; near.classList.remove('on'); };
+    near.addEventListener('pointerdown', on);
+    near.addEventListener('pointerup', off); near.addEventListener('pointerleave', off); near.addEventListener('pointercancel', off);
+    near.addEventListener('keydown', (ev) => { if (ev.key === ' ' || ev.key === 'Enter') on(ev); });
+    near.addEventListener('keyup', off);
+    near.addEventListener('contextmenu', (ev) => ev.preventDefault());
+  }
+  $('#s-centre')?.addEventListener('click', () => { state.pen = { x: 0, y: 0 }; recordH(0, 0); });
+  $('#s-uncover')?.addEventListener('click', () => { state.cover = null; });
+  sub.querySelectorAll('[data-hand]').forEach((b) => b.addEventListener('click', () => {
+    state.handCover = b.dataset.hand || null;
+    sub.querySelectorAll('[data-hand]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+  $('#s-face')?.addEventListener('click', askFace);
+}
+function setTool(t) {
+  state.tool = t; state.torch.on = false; state.penHeld = false; state.nearHold = false;
+  document.querySelectorAll('.tool').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
+  renderSub();
+}
+document.querySelectorAll('.tool').forEach((b) => b.addEventListener('click', () => setTool(b.dataset.tool)));
+
+function askFace() {
+  track.face = true;
+  const open = EYES.filter((e) => (state.tool === 'fields' ? state.handCover !== e : true) && sim.canSee[e]);
+  if (!open.length) { say("I can't see you at all with this eye shut."); return; }
+  if (open.every((e) => P.scotoma[e] > 0)) { say("There's a grey smudge over the middle of your face."); return; }
+  const side = (x) => Math.max(...open.map((e) => seenBy(P, e, x, 0)));
+  const rMiss = side(0.05) < 0.5, lMiss = side(-0.05) < 0.5;
+  if (rMiss && !lMiss) say('The right side of your face is missing.');
+  else if (lMiss && !rMiss) say('The left side of your face is missing.');
+  else if (P.field === 'homRight' || P.field === 'homLeft') say(`Your face looks fine, but things off to my ${P.field === 'homRight' ? 'right' : 'left'} aren't there.`);
+  else say('No, I can see all of your face.');
+}
+
+$('#x-va').addEventListener('click', () => {
+  track.va = true;
+  const f = (e) => `${EYE_NAME[e]} ${P.va[e]}${P.pin[e] !== P.va[e] ? ` (pinhole ${P.pin[e]})` : ''}`;
+  addLog('Acuity', `${f('R')}, ${f('L')}`, 'res');
+  say(P.va.R !== '6/6' || P.va.L !== '6/6' ? 'The letters are blurry with one eye.' : 'I can read the bottom line with each eye.', false);
+});
+$('#x-red').addEventListener('click', () => {
+  track.red = true;
+  const bad = EYES.filter((e) => P.red[e]);
+  if (bad.length === 1) say(`The red looks washed out, more pink, with my ${EYE_NAME[bad[0]]} eye.`);
+  else if (bad.length === 2) say('It looks washed out with both eyes.');
+  else say('Same bright red with each eye.');
+});
+$('#x-lift').addEventListener('click', (ev) => {
+  state.lift = !state.lift; track.lift = true;
+  ev.currentTarget.setAttribute('aria-pressed', String(state.lift));
+  if (state.lift && (P.ptosis.R >= 6 || P.ptosis.L >= 6)) setTimeout(() => say(sim.dip === 'double' ? 'Now I can see out of it, but everything is double.' : 'Now I can see out of it.'), 300);
+});
+$('#x-ice').addEventListener('click', () => {
+  if (state.iceAnim > 0) return;
+  track.ice = true; state.iceAnim = 1.8; state.ice = 22; state.iceDone = false;
+  addLog('Examiner', 'Ice pack on closed eyes (2 minutes in real life).');
+});
+$('#x-fundus').addEventListener('click', () => { track.fundus = true; addLog('Fundoscopy', P.fundus, 'res'); });
+document.querySelectorAll('#tilt [data-tilt]').forEach((b) => b.addEventListener('click', () => {
+  state.posture = b.dataset.tilt; track.tilt = true;
+  document.querySelectorAll('#tilt [data-tilt]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+}));
+$('#t-lights').addEventListener('click', (ev) => {
+  state.lights = !state.lights;
+  if (!state.lights) track.dim = true;
+  ev.currentTarget.setAttribute('aria-pressed', String(state.lights));
+  ev.currentTarget.textContent = state.lights ? 'Room lights on' : 'Room lights off';
+});
+$('#t-gauge').addEventListener('click', (ev) => {
+  state.gauge = !state.gauge;
+  ev.currentTarget.setAttribute('aria-pressed', String(state.gauge));
+});
+function setView(v) {
+  state.view = v;
+  $('#v-face').setAttribute('aria-pressed', String(v === 'face'));
+  $('#v-close').setAttribute('aria-pressed', String(v === 'close'));
+}
+$('#v-face').addEventListener('click', () => setView('face'));
+$('#v-close').addEventListener('click', () => setView('close'));
+
+/* ================= panel ================= */
+function renderCheck() {
+  const ul = $('#check');
+  const html = CHECK.map((c) => {
+    const p = clamp(c.prog(), 0, 1);
+    const cls = p >= 0.999 ? 'done' : p > 0 ? 'part' : '';
+    const prog = c.txt ? c.txt() : '';
+    return `<li class="${cls}"><span class="dot" aria-hidden="true"></span><span class="lbl">${c.label}${p >= 0.999 ? '<span class="sr"> (done)</span>' : ''}</span><span class="prog">${prog}</span></li>`;
+  }).join('');
+  if (ul.dataset.h !== html) { ul.innerHTML = html; ul.dataset.h = html; }
+  const ex = EXTRAS.filter(([id]) => track[id]).map(([, l]) => l);
+  const t = ex.length ? `Extras: ${ex.join(', ')}.` : 'Extras like the red pin, lid lift and head tilt show up here.';
+  if ($('#extras').textContent !== t) $('#extras').textContent = t;
+}
+function stemHTML(c) {
+  return `<span class="who">${c.age}-year-old ${c.sex === 'F' ? 'woman' : 'man'}</span>${esc(c.stem)}`;
+}
+function teachHTML(c) {
+  return `<h3>Findings</h3><ul>${c.findings.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` +
+    `<h3>Where is the lesion?</h3><p>${esc(c.where)}</p>` +
+    `<h3>Pearl</h3><p>${esc(c.pearl)}</p>` +
+    `<h3>Next step</h3><p>${esc(c.next)}</p>`;
+}
+function vivaInto(el, viva) {
+  const order = viva.opts.map((_, i) => i).sort(() => Math.random() - 0.5);
+  el.innerHTML = `<p class="eyebrow">Examiner's question</p><p class="q">${esc(viva.q)}</p><div class="opts">${order.map((i) => `<button type="button" data-i="${i}">${esc(viva.opts[i])}</button>`).join('')}</div><p class="why" hidden></p>`;
+  el.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    const i = +b.dataset.i;
+    el.querySelectorAll('button').forEach((x) => {
+      x.disabled = true;
+      if (+x.dataset.i === viva.a) x.classList.add('right');
+    });
+    if (i !== viva.a) b.classList.add('wrongpick');
+    const w = el.querySelector('.why');
+    w.hidden = false;
+    w.innerHTML = `<b>${i === viva.a ? 'Right.' : 'Not quite.'}</b> ${esc(viva.why)}`;
+  }));
+}
+
+/* field charts, drawn as the patient sees them: left eye on the left */
+const REGIONS = ['ST', 'SN', 'IT', 'IN', 'C'];
+function sector(cx, cy, r1, r2, a0, a1) {
+  const p = (r, a) => `${(cx + r * Math.cos(a * DEG)).toFixed(2)} ${(cy + r * Math.sin(a * DEG)).toFixed(2)}`;
+  return `M${p(r2, a0)} A${r2} ${r2} 0 0 1 ${p(r2, a1)} L${p(r1, a1)} A${r1} ${r1} 0 0 0 ${p(r1, a0)} Z`;
+}
+function chartSVG(marks, opts = {}) {
+  const eyes = [['L', 60], ['R', 180]];
+  let s = `<svg class="fchart${opts.ro ? ' ro' : ''}" viewBox="0 0 240 128" role="group" aria-label="${opts.label || 'Visual field chart'}">`;
+  for (const [e, cx] of eyes) {
+    const cy = 66, tRight = e === 'R';
+    const ang = { ST: tRight ? [-90, 0] : [-180, -90], SN: tRight ? [-180, -90] : [-90, 0], IT: tRight ? [0, 90] : [90, 180], IN: tRight ? [90, 180] : [0, 90] };
+    for (const r of REGIONS) {
+      const key = `${e}:${r}`, on = marks.has(key);
+      const wrong = opts.truth && opts.truth.has(key) !== on;
+      const d = r === 'C' ? `M${cx - 14} ${cy} a14 14 0 1 0 28 0 a14 14 0 1 0 -28 0` : sector(cx, cy, 14, 44, ang[r][0], ang[r][1]);
+      const name = `${EYE_NAME[e]} eye, ${{ ST: 'upper outer', SN: 'upper inner', IT: 'lower outer', IN: 'lower inner', C: 'centre' }[r]}`;
+      s += `<path class="rg${on ? ' on' : ''}${wrong ? ' wrong' : ''}" data-k="${key}" d="${d}"${opts.ro ? '' : ` tabindex="0" role="button" aria-pressed="${on}"`}><title>${name}</title></path>`;
+    }
+    s += `<text class="big" x="${cx}" y="12" text-anchor="middle">${e === 'L' ? 'Left eye' : 'Right eye'}</text>`;
+    s += `<text x="${cx - 51}" y="${cy + 3}" text-anchor="middle">${tRight ? 'N' : 'T'}</text><text x="${cx + 51}" y="${cy + 3}" text-anchor="middle">${tRight ? 'T' : 'N'}</text>`;
+  }
+  return s + '</svg>';
+}
+function regionDefect(p, e, code) {
+  let sum = 0, n = 0;
+  if (code === 'C') {
+    for (const r of [0.02, 0.07, 0.12, 0.17]) for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; sum += seenBy(p, e, Math.cos(a) * r, Math.sin(a) * r); n++; }
+    return sum / n < 0.35;
+  }
+  const sy = code[0] === 'S' ? 1 : -1, tSign = e === 'R' ? 1 : -1, sx = code[1] === 'T' ? tSign : -tSign;
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) {
+    const a = ((i + 0.5) / 6) * (Math.PI / 2), r = 0.3 + (0.6 * (j + 0.5)) / 6;
+    sum += seenBy(p, e, sx * Math.cos(a) * r, sy * Math.sin(a) * r); n++;
+  }
+  return sum / n < 0.5;
+}
+function truthMarks(p) {
+  const t = new Set();
+  for (const e of EYES) for (const r of REGIONS) if (regionDefect(p, e, r)) t.add(`${e}:${r}`);
+  return t;
+}
+let myMarks = new Set();
+function renderMyChart() {
+  const box = $('#chartMine');
+  box.innerHTML = chartSVG(myMarks, { label: 'Your field chart. Tap a region to mark it missing.' });
+  box.querySelectorAll('.rg').forEach((el) => {
+    const toggle = () => { const k = el.dataset.k; if (myMarks.has(k)) myMarks.delete(k); else myMarks.add(k); renderMyChart(); box.querySelector(`[data-k="${k}"]`)?.focus(); };
+    el.addEventListener('click', toggle);
+    el.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); } });
+  });
+}
+
+/* ================= cases & modes ================= */
+function resetExamState() {
+  Object.assign(state, {
+    pen: { x: 0, y: 0 }, penHeld: false, nearHold: false, torch: { on: false, x: 0, y: 0 },
+    cover: null, handCover: 'L', lift: false, posture: 'habit', fingers: null, ice: 0, iceAnim: 0, iceDone: false
+  });
+  Object.assign(sim, {
+    th: { R: 0, L: 0 }, tv: { R: 0, L: 0 }, near: 0, fatE: 0, fatUp: 0, upHold: 0, say: '', sayUntil: 0,
+    lastDipSaid: '', lastDipT: 0, lastPain: 0, mgSaid: false, brightSaid: false, d: { R: 4, L: 4 }
+  });
+  sim.tilt = P ? P.tiltHabit : 0;
+  $('#x-lift').setAttribute('aria-pressed', 'false');
+  document.querySelectorAll('#tilt [data-tilt]').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+  track = newTrack();
+  logItems = [];
+  renderLog();
+  setTool('pen');
+}
+function loadCase(c) {
+  C = c;
+  const p = basePatient();
+  c.setup(p);
+  P = finishPatient(p);
+  P.look = randomLook(c.age, c.sex);
+  resetExamState();
+  for (const e of EYES) {
+    const raw = (P.afferent.R * 0.45 + P.afferent.L * 0.45) / 2, sL = raw / (raw + 0.3);
+    sim.d[e] = P.dMax[e] - (P.dMax[e] - P.dMin[e]) * clamp(P.lightEff[e] * sL, 0, 1);
+  }
+  $('#stem').innerHTML = stemHTML(c);
+  if (state.mode === 'learn') {
+    $('#teach').innerHTML = teachHTML(c) + '<div class="viva" id="learnViva"></div>';
+    vivaInto($('#learnViva'), c.viva);
+    $('#revealDetails').open = false;
+  }
+  if (state.mode === 'exam') {
+    $('#answer').reset();
+    myMarks = new Set();
+    renderMyChart();
+    $('#b-answer').hidden = false;
+    $('#b-debrief').hidden = true;
+    $('#b-view').hidden = true;
+    $('#submitMsg')?.remove();
+    renderStats();
+  }
+  renderCheck();
+}
+function pickExamCase() {
+  const last = C && C.id;
+  const seen = Object.values(stats.cases).reduce((a, s) => a + s.n, 0);
+  const w = CASES.map((c) => {
+    const s = stats.cases[c.id] || { n: 0, c: 0 };
+    let wt = 1 + 2 * (s.n - s.c) + (s.n === 0 ? 2 : 0);
+    if (c.id === last) wt *= 0.05;
+    if (c.tier === 'Stretch' && seen < 4) wt *= 0.35;
+    return wt;
+  });
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < CASES.length; i++) { r -= w[i]; if (r <= 0) return CASES[i]; }
+  return CASES[0];
+}
+function renderStats() {
+  const vals = Object.values(stats.cases);
+  const seen = vals.reduce((a, s) => a + s.n, 0), ok = vals.reduce((a, s) => a + s.c, 0);
+  $('#stats').textContent = seen ? `Solved ${ok}/${seen} · streak ${stats.streak} · best ${stats.best}` : 'Your first patient';
+}
+
+const sbx = {
+  rows: [['cn3', 'CN III (muscles, lid)'], ['cn3p', 'CN III pupil fibres'], ['cn4', 'CN IV'], ['cn6', 'CN VI'], ['mlf', 'MLF'], ['symp', 'Sympathetic'], ['optic', 'Optic nerve']],
+  v: {}, pretectal: false, mg: false, field: 'normal'
+};
+function sbxReset() {
+  for (const [k] of sbx.rows) sbx.v[k] = { R: 100, L: 100 };
+  sbx.pretectal = false; sbx.mg = false; sbx.field = 'normal';
+}
+sbxReset();
+function sandboxPatient() {
+  const p = basePatient();
+  for (const e of EYES) {
+    const a = sbx.v.cn3[e] / 100;
+    Object.assign(p.mus[e], { MR: a, SR: a, IR: a, IO: a });
+    p.ptosis[e] = (1 - a) * 9;
+    const pp = sbx.v.cn3p[e] / 100;
+    p.lightEff[e] = pp; p.nearEff[e] = pp;
+    p.dMax[e] = 6.5 + (1 - pp) * 1.1;
+    p.mus[e].SO = sbx.v.cn4[e] / 100;
+    p.mus[e].LR = Math.max(0.03, sbx.v.cn6[e] / 100);
+    p.mlf[e] = Math.max(0.05, sbx.v.mlf[e] / 100);
+    const s = sbx.v.symp[e] / 100;
+    p.dMax[e] -= (1 - s) * 1.6;
+    p.ptosis[e] += (1 - s) * 1.8;
+    p.lowerLift[e] = (1 - s) * 1.0;
+    p.tauD[e] = 0.7 + (1 - s) * 2.4;
+    p.dMin[e] = lerp(p.dMax[e], 2.3, pp);
+    const o = sbx.v.optic[e] / 100;
+    p.afferent[e] = o;
+    if (o < 0.65) { p.red[e] = true; p.scotoma[e] = o < 0.06 ? 0 : 0.12 + (0.65 - o) * 0.3; }
+    p.va[e] = p.pin[e] = o >= 0.9 ? '6/6' : o >= 0.7 ? '6/9' : o >= 0.5 ? '6/18' : o >= 0.3 ? '6/36' : o >= 0.1 ? '6/60' : o > 0.02 ? 'hand movements' : 'no perception of light';
+  }
+  p.inoNyst = { R: p.mlf.L < 0.7, L: p.mlf.R < 0.7 };
+  if (sbx.pretectal) for (const e of EYES) { p.lightEff[e] = 0; p.dMax[e] = Math.min(p.dMax[e], 3.0); p.dMin[e] = Math.min(p.dMin[e], 1.5); p.irregular[e] = 1; }
+  if (sbx.mg) p.mg = { mus: { R: { LR: 0.72, MR: 0.92 }, L: { SR: 0.62, MR: 0.85, IR: 0.92 } }, ptosis: { R: 2.2, L: 1.0 }, fat: { R: 3.4, L: 2.2 } };
+  p.field = sbx.field;
+  if (sbx.v.optic.R < 50 || sbx.v.optic.L < 50) p.fundus = 'Discs look normal so far. Pallor would follow weeks after optic nerve damage.';
+  return finishPatient(p);
+}
+function buildSandboxUI() {
+  const box = $('#sbx');
+  let h = '<div class="head"><span>Pathway</span><span>Right</span><span>Left</span></div>';
+  for (const [k, label] of sbx.rows) {
+    h += `<div class="line"><span>${label}</span>` + EYES.map((e) =>
+      `<div class="cell"><input type="range" min="0" max="100" step="5" id="sbx-${k}-${e}" value="${sbx.v[k][e]}" aria-label="${label}, ${EYE_NAME[e]} side"><span class="val" id="sbx-${k}-${e}-v">${sbx.v[k][e]}%</span></div>`
+    ).join('') + '</div>';
+  }
+  h += `<label class="checkline"><input type="checkbox" id="sbx-pre"${sbx.pretectal ? ' checked' : ''}> Dorsal midbrain (light–near dissociation)</label>`;
+  h += `<label class="checkline"><input type="checkbox" id="sbx-mg"${sbx.mg ? ' checked' : ''}> Myasthenia (fatigable)</label>`;
+  h += `<div><label class="lbl-top" for="sbx-field">Field defect</label><select id="sbx-field">${[
+    ['normal', 'None'], ['bitemporal', 'Bitemporal hemianopia'], ['homRight', 'Right homonymous hemianopia'], ['homLeft', 'Left homonymous hemianopia'],
+    ['supQuadLeft', 'Left upper quadrantanopia'], ['supQuadRight', 'Right upper quadrantanopia'], ['infQuadLeft', 'Left lower quadrantanopia'], ['infQuadRight', 'Right lower quadrantanopia']
+  ].map(([v, l]) => `<option value="${v}"${sbx.field === v ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`;
+  h += '<div class="row"><button type="button" class="btn" id="sbx-reset">Reset to healthy</button></div>';
+  box.innerHTML = h;
+  const apply = () => { const look = P && P.look; P = sandboxPatient(); P.look = look || randomLook(40, 'F'); renderCheck(); };
+  for (const [k] of sbx.rows) for (const e of EYES) {
+    const el = $(`#sbx-${k}-${e}`);
+    el.addEventListener('input', () => { sbx.v[k][e] = +el.value; $(`#sbx-${k}-${e}-v`).textContent = `${el.value}%`; apply(); });
+  }
+  $('#sbx-pre').addEventListener('change', (ev) => { sbx.pretectal = ev.target.checked; apply(); });
+  $('#sbx-mg').addEventListener('change', (ev) => { sbx.mg = ev.target.checked; apply(); });
+  $('#sbx-field').addEventListener('change', (ev) => { sbx.field = ev.target.value; apply(); });
+  $('#sbx-reset').addEventListener('click', () => { sbxReset(); buildSandboxUI(); apply(); });
+}
+
+function setMode(m) {
+  state.mode = m;
+  document.querySelectorAll('.modes [data-mode]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
+  $('#learn-pick').hidden = m !== 'learn';
+  $('#exam-bar').hidden = m !== 'exam';
+  $('#b-reveal').hidden = m !== 'learn';
+  $('#b-answer').hidden = m !== 'exam';
+  $('#b-debrief').hidden = true;
+  $('#b-sandbox').hidden = m !== 'sandbox';
+  $('#b-view').hidden = m === 'exam';
+  $('#b-check').hidden = m === 'sandbox';
+  $('#clock').hidden = m !== 'exam';
+  $('#patient-eyebrow').textContent = m === 'exam' ? 'Your patient' : m === 'sandbox' ? 'Sandbox' : 'Patient';
+  if (m === 'learn') loadCase(CASES.find((c) => c.id === $('#caseSel').value) || CASES[0]);
+  else if (m === 'exam') loadCase(pickExamCase());
+  else {
+    C = null;
+    P = sandboxPatient(); P.look = randomLook(40, Math.random() < 0.5 ? 'F' : 'M');
+    resetExamState();
+    $('#stem').innerHTML = '<span class="who">Your own patient</span>Weaken any pathway below and examine the result. Each slider is one side of the patient.';
+    buildSandboxUI();
+  }
+}
+document.querySelectorAll('.modes [data-mode]').forEach((b) => b.addEventListener('click', () => { if (state.mode !== b.dataset.mode) setMode(b.dataset.mode); }));
+
+(function fillSelects() {
+  const sel = $('#caseSel');
+  for (const tier of ['Core', 'Stretch']) {
+    const og = document.createElement('optgroup');
+    og.label = tier === 'Core' ? 'Core cases' : 'Stretch cases';
+    for (const c of CASES.filter((x) => x.tier === tier)) {
+      const o = document.createElement('option'); o.value = c.id; o.textContent = c.title; og.appendChild(o);
+    }
+    sel.appendChild(og);
+  }
+  sel.addEventListener('change', () => loadCase(CASES.find((c) => c.id === sel.value)));
+  const dx = $('#dxSel');
+  dx.innerHTML = '<option value="">Choose…</option>' + DX_GROUPS.map(([g, ids]) => `<optgroup label="${g}">${ids.map((id) => `<option value="${id}">${DX[id]}</option>`).join('')}</optgroup>`).join('');
+  dx.addEventListener('change', () => { if (dx.value === 'normal') $('#side-N').checked = true; });
+})();
+
+$('#newCase').addEventListener('click', () => loadCase(pickExamCase()));
+$('#answer').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const dx = $('#dxSel').value;
+  const side = (document.querySelector('input[name="side"]:checked') || {}).value;
+  $('#submitMsg')?.remove();
+  if (!dx || !side) {
+    const m = document.createElement('p'); m.id = 'submitMsg'; m.className = 'stats';
+    m.textContent = !dx ? 'Choose a lesion first.' : 'Choose a side, or "No lesion".';
+    $('#submitBtn').after(m);
+    return;
+  }
+  showDebrief(dx, side);
+});
+function fmtTime(ms) { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+function showDebrief(dx, side) {
+  const c = C;
+  track.submitted = true; track.tEnd = performance.now();
+  const dxOk = dx === c.dx;
+  const sideOk = c.side === 'N' ? true : side === c.side;
+  const ok = dxOk && sideOk;
+  const truth = truthMarks(P);
+  let fieldsRight = 0;
+  for (const e of EYES) for (const r of REGIONS) if (truth.has(`${e}:${r}`) === myMarks.has(`${e}:${r}`)) fieldsRight++;
+  const routine = CHECK.filter((x) => x.prog() >= 0.999).length;
+  const missed = c.keys.filter((k) => !isDone(k));
+  const s = stats.cases[c.id] || { n: 0, c: 0 };
+  s.n++; if (ok) s.c++;
+  stats.cases[c.id] = s;
+  stats.streak = ok ? stats.streak + 1 : 0;
+  stats.best = Math.max(stats.best, stats.streak);
+  store.set(SKEY, stats);
+  renderStats();
+  const answer = DX[c.dx] + (c.side === 'R' || c.side === 'L' ? `, ${EYE_NAME[c.side]} side` : c.side === 'B' ? ', both sides or midline' : '');
+  let h = `<div class="verdict ${ok ? 'ok' : 'no'}">${ok ? 'Correct' : dxOk ? 'Right lesion, wrong side' : 'Not quite'}<small>The answer: ${esc(answer)}. You said: ${esc(DX[dx])}, ${esc(SIDE_NAME[side])}.</small></div>`;
+  h += `<ul class="score"><li class="${dxOk ? 'ok' : 'no'}">Lesion ${dxOk ? '✓' : '✗'}</li><li class="${sideOk ? 'ok' : 'no'}">Side ${sideOk ? '✓' : '✗'}</li><li class="${fieldsRight === 10 ? 'ok' : ''}">Fields chart ${fieldsRight}/10</li><li>Routine ${routine}/10</li><li>Time ${fmtTime(track.tEnd - track.t0)}</li></ul>`;
+  if (missed.length) h += `<div class="missed"><b>Key ${missed.length > 1 ? 'tests' : 'test'} you skipped</b>${missed.map((k) => esc(KEY_MSG[k])).join('<br>')}</div>`;
+  h += `<div class="charts" style="margin-top:12px"><div class="chart-wrap"><span class="cap">Your chart</span>${chartSVG(myMarks, { ro: true, truth, label: 'Your field chart' })}</div><div class="chart-wrap"><span class="cap">Actual fields</span>${chartSVG(truth, { ro: true, label: 'Actual field chart' })}</div></div>`;
+  h += `<div class="teach">${teachHTML(c)}</div><div class="viva" id="examViva"></div>`;
+  h += '<div class="row" style="margin-top:14px"><button type="button" class="btn primary" id="nextCase">Next patient</button></div>';
+  const d = $('#b-debrief');
+  d.innerHTML = h;
+  d.hidden = false;
+  $('#b-answer').hidden = true;
+  $('#b-view').hidden = false;
+  vivaInto($('#examViva'), c.viva);
+  $('#nextCase').addEventListener('click', () => { loadCase(pickExamCase()); $('#sheet').scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' }); });
+  d.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+
+/* ================= loop ================= */
+let lastT = performance.now(), lastUI = 0, pvFlip = false;
+function frame(now) {
+  const dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000));
+  lastT = now;
+  if (P) {
+    const v = vp();
+    if (state.torch.on) state.torchFace = toFace(v, state.torch.x, state.torch.y);
+    step(dt, now);
+    draw(v, now);
+    pvFlip = !pvFlip;
+    if (pvFlip && !$('#b-view').hidden) drawPV();
+    if (now - lastUI > 250) {
+      lastUI = now;
+      if (state.mode !== 'sandbox') renderCheck();
+      if (state.mode === 'exam') {
+        const t = fmtTime((track.submitted ? track.tEnd : now) - track.t0);
+        if ($('#clock').textContent !== t) $('#clock').textContent = t;
+      }
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* test hook for automated checks */
+window.FMF = {
+  state, sim, CASES, setMode, setTool, setView,
+  get P() { return P; }, get track() { return track; },
+  load(id) { loadCase(CASES.find((c) => c.id === id)); },
+  pen(x, y) { state.pen = { x, y }; recordH(x, y); },
+  torchAt(e) { const v = vp(); const s = toScreen(v, EX[e], 0); state.tool = 'torch'; state.torch = { on: true, x: s.x, y: s.y }; state.torchFace = toFace(v, s.x, s.y); },
+  torchOff() { state.torch.on = false; },
+  truth() { return [...truthMarks(P)]; }
+};
+
+document.querySelector('.bench').addEventListener('click', () => { if (track && state.mode !== 'sandbox') setTimeout(renderCheck, 0); });
+$('#caseSel').value = 'normal';
+setMode('learn');
+renderLog();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
