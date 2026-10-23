@@ -39,6 +39,8 @@ button { cursor: pointer; }
 .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
 .brand h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: .01em; text-wrap: balance; }
 .brand span { color: var(--muted); font-size: 13px; }
+.home { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); font-size: 13px; text-decoration: none; white-space: nowrap; }
+.home:hover { color: var(--fg); border-color: var(--muted); }
 .tabs { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 2px; }
 .tabs button { border: 0; background: none; padding: 5px 12px; border-radius: 6px; font-family: var(--display); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; font-size: 13px; color: var(--muted); }
 .tabs button[aria-pressed="true"] { background: var(--panel-2); color: var(--fg); box-shadow: inset 0 -2px 0 var(--accent); }
@@ -176,6 +178,21 @@ button { cursor: pointer; }
 .chips button:hover { border-color: #3a464d; }
 .weak { display: grid; gap: 4px; }
 .weak h4 { margin: 6px 0 0; font-family: var(--display); font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.dots i.gap { margin-left: 6px; }
+.learn .stepn span { text-transform: uppercase; letter-spacing: .06em; font-family: var(--display); font-weight: 600; font-size: 12px; }
+.learn table.hu { border-collapse: collapse; font-size: 13px; margin: 0 0 8px; width: 100%; }
+.learn table.hu td { padding: 2px 0; border-bottom: 1px solid var(--line); }
+.learn table.hu td + td { text-align: right; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--accent); }
+.learn .body ul, .learn .body ol { margin: 0 0 8px; padding-left: 18px; font-size: 13.5px; }
+.learn ol.route { columns: 2; column-gap: 18px; }
+.look { border-left: 2px solid var(--line); padding-left: 10px; }
+.look h4, .ptnote { margin: 0 0 4px; font-family: var(--display); font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.look ul { margin: 0; padding-left: 16px; font-size: 13px; display: grid; gap: 2px; }
+.ptnote { color: var(--accent); }
+.task { display: flex; gap: 8px; align-items: flex-start; border: 1px dashed #3a464d; border-radius: 8px; padding: 7px 9px; font-size: 13px; }
+.task .tick { font-family: var(--mono); color: var(--muted); }
+.task.done { border-style: solid; border-color: var(--ok); }
+.task.done .tick, .task.done span { color: var(--ok); }
 .quiz .why { font-size: 13px; color: var(--fg); line-height: 1.45; border-left: 2px solid var(--line); padding-left: 9px; }
 
 @media (max-width: 1280px) {
@@ -210,6 +227,7 @@ button { cursor: pointer; }
 
 <div class="app">
   <div class="top">
+    <a class="home" href="../" title="Back to sam.med">&larr; sam.med</a>
     <div class="brand"><h1>CT Anatomy Trainer</h1><span id="sub">Abdomen &amp; pelvis · portal venous phase</span></div>
     <div class="tabs" role="group" aria-label="Mode">
       <button id="m-learn" aria-pressed="true">Learn</button>
@@ -334,7 +352,7 @@ button { cursor: pointer; }
   </div>
 
   <div class="status" id="status"></div>
-  <div class="credit" id="credit">CT: Medical Segmentation Decathlon, Task 03 (liver), CC BY-SA 4.0. Labels: TotalSegmentator v2 (Wasserthal et al., 2023), generated automatically and not hand-corrected, so edges can be wrong. Abdominal wall muscles are only labelled from T4 to L4. The scan comes from a liver-tumour dataset, so the liver is not normal. For learning, not diagnosis.</div>
+  <div class="credit" id="credit">CT and organ labels: TotalSegmentator dataset, case s0204 (Wasserthal et al., Radiology: Artificial Intelligence 2023; <a href="https://doi.org/10.5281/zenodo.10047292" target="_blank" rel="noopener">Zenodo</a>), CC BY 4.0. A 36-year-old man with no recorded abnormality, portal venous phase. Abdominal wall muscles were added automatically and only cover T4 to L4. Labels can be imperfect at edges. For learning, not diagnosis.</div>
 </div>
 
 <script type="importmap">
@@ -687,6 +705,7 @@ function wireView(v) {
       $('#clearann').hidden = false; invalidate(); return;
     }
     if (state.mode === 'quiz' && state.quiz && !state.quiz.reveal) { if (vx.inside) quizClick(vx); return; }
+    if (state.mode === 'learn' && vx.inside) learnCheck(LAB[at(vx.i, vx.j, vx.k)], u8ToHU(CTV[at(vx.i, vx.j, vx.k)]));
     dragging = true; setCross(vx.i, vx.j, vx.k);
   });
   v.canvas.addEventListener('pointermove', e => {
@@ -806,6 +825,7 @@ function initThree(meshBytes) {
     if (state.mode === 'quiz' && state.quiz && !state.quiz.reveal) return;
     const h = pick(e); if (!h) return;
     const p = h.point; jumpTo([p.x + C3.x - SX / 2, -p.z + C3.y - SY / 2, p.y + C3.z - SZ / 2]);
+    if (state.mode === 'learn') { learnCheck(h.object.userData.id); state.sel = 0; refreshLabels(); return; }
     select(h.object.userData.id, false);
   });
   let pend = 0;
@@ -944,6 +964,7 @@ function sliceCentroid(id, k) {
   return n ? [sx / n * SX, sy / n * SY, k * SZ] : null;
 }
 function goPoint(g) {
+  if (g.point && meta.points?.[g.point]) return meta.points[g.point].point;
   if (g.landmark) { const L = meta.landmarks.find(l => l.title === g.landmark); if (L) return L.point; }
   const s = Object.values(S).find(x => x.key === g.key) || S[idsFor(g.key)[0]];
   if (!s) return null;
@@ -954,23 +975,43 @@ function goPoint(g) {
   return s.point;
 }
 function showStep(n) {
-  step = Math.max(0, Math.min(C.tour.length - 1, n)); store.set('step', step);
+  step = Math.max(0, Math.min(C.tour.length - 1, n)); store.set('tour2.step', step);
   const st = C.tour[step];
   state.sel = 0; state.focus = new Set((st.show || []).flatMap(idsFor));
   const p = st.go && goPoint(st.go); if (p) jumpTo(p);
+  if (st.window) $(`#win button[data-w="${WINDOWS[st.window][0]}"]`)?.click();
+  state.task = st.task ? { ...st.task, ids: new Set(idsFor(st.task.key)), done: store.get('tour2.task.' + step, false) } : null;
   const box = $('#learn');
   const chips = [...state.focus].map(id => S[id]);
-  box.innerHTML = `<div class="stepn"><span>${step + 1} / ${C.tour.length}</span><div class="dots">${C.tour.map((_, i) => `<i class="${i < step ? 'done' : i === step ? 'cur' : ''}"></i>`).join('')}</div></div>
+  const pt = st.go?.point && meta.points?.[st.go.point];
+  box.innerHTML = `<div class="stepn"><span>${st.part ? st.part + ' · ' : ''}${step + 1} / ${C.tour.length}</span></div><div class="dots">${C.tour.map((t, i) => `<i class="${i < step ? 'done' : i === step ? 'cur' : ''}${i && t.part !== C.tour[i - 1].part ? ' gap' : ''}" title="${t.title}"></i>`).join('')}</div>
     <h3>${st.title}</h3><div class="body">${st.body}</div>
+    ${pt ? `<p class="ptnote">${pt.title} · this scan: ${pt.level}</p>` : ''}
+    ${st.check ? `<div class="look"><h4>Look for</h4><ul>${st.check.map(c => `<li>${c}</li>`).join('')}</ul></div>` : ''}
+    ${state.task ? `<div class="task ${state.task.done ? 'done' : ''}" id="task"><span class="tick">${state.task.done ? '✓' : '○'}</span><span id="tasktext">${state.task.prompt}</span></div>` : ''}
     ${chips.length ? `<div class="chips">${chips.map(s => `<button data-id="${s.id}"><i style="background:${s.color}"></i>${s.name}</button>`).join('')}</div>` : ''}
     <div class="qrow"><button class="qbtn" id="prev" ${step === 0 ? 'disabled' : ''}>Back</button>
     ${st.final ? '<button class="qbtn primary" id="toquiz">Start the quiz</button>' : '<button class="qbtn primary" id="next">Next</button>'}</div>`;
   $$('.chips button', box).forEach(b => b.onclick = () => jumpTo(S[+b.dataset.id].point));
   $('#prev').onclick = () => showStep(step - 1);
   if ($('#next')) $('#next').onclick = () => showStep(step + 1);
-  if ($('#toquiz')) $('#toquiz').onclick = () => { store.set('toured', true); setMode('quiz'); };
-  if (st.final) store.set('toured', true);
+  if ($('#toquiz')) $('#toquiz').onclick = () => { store.set('tour2.done', true); setMode('quiz'); };
+  if (st.final) store.set('tour2.done', true);
   refreshLabels();
+}
+
+// Learn-mode tasks: "click the X". Checked against the label under the click, on any slice or the 3D model.
+const WINDOWS = { soft: [400, 40], liver: [160, 70], bone: [1800, 400], lung: [1500, -600] };
+function learnCheck(id, hu) {
+  const T = state.task; if (state.mode !== 'learn' || !T) return;
+  const box = $('#task'); if (!box) return;
+  if (T.ids.has(id)) {
+    T.done = true; store.set('tour2.task.' + step, true);
+    box.classList.add('done'); $('.tick', box).textContent = '✓';
+    $('#tasktext').textContent = `${S[id].name}${T.showHU && hu != null ? `: ${Math.round(hu)} HU` : ''}. Well done.`;
+  } else if (!T.done) {
+    $('#tasktext').textContent = `${id ? `That's the ${S[id].name}.` : 'That point is not a labelled structure.'} ${T.prompt}`;
+  }
 }
 
 /* ------------------------------------------------------------------ levels panel */
@@ -1200,9 +1241,9 @@ function wireControls() {
     initThree(meshBytes);
     wireControls(); buildList(); buildLevels();
     setCross(state.i, state.j, state.k);
-    step = store.get('step', 0);
+    step = store.get('tour2.step', 0);
     $('#loading').remove();
-    setMode(store.get('toured', false) ? 'explore' : 'learn');
+    setMode(store.get('tour2.done', false) ? 'explore' : 'learn');
   } catch (err) {
     ltxt.textContent = 'Could not load the scan: ' + err.message;
     console.error(err);

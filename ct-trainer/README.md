@@ -17,7 +17,7 @@ Static files only; works on GitHub Pages. Serve over http(s), not file://.
   - `tiers`: which structures are Core / More in the quiz and structure list
 
 ## Viewer features
-- Learn: 14-step guided tour; highlights only the structures each step is about
+- Learn: 22 steps in two parts — Reading a CT (orientation, HU, windows, contrast phase, levels) and a 15-stop search pattern, each stop with a find-it task and a look-for checklist
 - Explore: labels off by default; hold Space or "Hold to peek" to show them; Core/All list; structure cards
 - Levels: landmarks measured in this scan vs textbook levels
 - Quiz: Find it / Name it / Level it, Core / More / Everything tiers, confusable distractors, explanations, missed items weighted to come back (progress kept in the browser)
@@ -25,22 +25,19 @@ Static files only; works on GitHub Pages. Serve over http(s), not file://.
 - Phones: one plane at a time with Axial/Coronal/Sagittal tabs
 
 ## prep/ — how the assets were built
-1. CT: Medical Segmentation Decathlon Task03 `liver_100` (portal venous, 0.7 mm), via 3D Slicer sample data.
-2. Labels: `TotalSegmentator -ml` (task `total`), plus `-ta abdominal_muscles` run in four chunks to fit in 4 GB RAM (`assemble_muscles.py` stitches them).
-3. `python prep.py ct.nii.gz total.nii.gz muscles.nii.gz ../site`
-   - crops to liver dome → below the hips, removes the table, resamples to 1.0 × 1.0 × 1.25 mm
-   - marching cubes + quadric decimation + Taubin smoothing per structure
-   - `levels.py` assigns a vertebral level to every axial slice from the vertebral bodies (anterior to the cord)
-   - landmarks (aortic bifurcation, IVC formation, iliac crests, renal hila…) are measured in this scan
-
-Manual fix applied for this case: TotalSegmentator split T11 into two labels and numbered T9–T11 one too low. Corrected in `prep.py` (`FIX`), checked against the 10th and 11th rib heads.
+1. CT and labels: TotalSegmentator dataset v2.0.1, case s0204 (36-year-old man, portal venous CT abdomen-pelvis, no pathology recorded), CC BY 4.0. Pulled from the 23.6 GB Zenodo zip with HTTP range requests, so only this case was downloaded.
+2. Organ labels: the dataset's own reference segmentations (117 masks merged into one label map with TotalSegmentator's class order).
+3. Abdominal wall muscles: `TotalSegmentator -ta abdominal_muscles`, run in chunks to fit in memory; `assemble_muscles.py` stitches them. The model only covers T4–L4.
+4. `python prep.py ct.nii.gz total.nii.gz muscles.nii.gz ../site cases/s0204.json`
+   - per-case settings live in `cases/*.json` (output grid, label fixes, source credits)
+   - meshes: marching cubes + quadric decimation + Taubin smoothing per structure
+   - `levels.py` assigns a vertebral level to every axial slice from the vertebral bodies
+   - landmarks (aortic bifurcation, IVC formation, iliac crests, renal hila…) and teaching points (Morison's pouch, ileocaecal junction, rectovesical pouch) are measured in this scan
 
 ## Known limits
-- Labels are automatic and not hand-corrected.
-- The abdominal-wall muscle model only covers T4–L4, so rectus abdominis and the obliques stop at L4.
-- No coeliac trunk, SMA, renal vessels or hepatic veins yet (not in the free TotalSegmentator tasks).
-- The patient has liver tumours (it is a liver-tumour dataset).
+- Organ labels are the dataset's refined labels; the abdominal wall muscles are automatic and stop at L4.
+- No coeliac trunk, SMA, renal vessels, hepatic veins, bile ducts, ureters or appendix labels yet.
+- One normal male case. Pancreas-CT (TCIA, CC BY 3.0) is a source of more normal scans, abdomen only.
 
-## Licences
-CT: CC BY-SA 4.0 (Medical Segmentation Decathlon) — derived assets (slices, meshes) should carry the same licence and attribution.
-Labels: TotalSegmentator (Wasserthal et al., Radiology: AI 2023), Apache-2.0 code / open weights for the tasks used.
+## Licence and attribution
+CT and labels: Wasserthal J et al. TotalSegmentator. Radiology: Artificial Intelligence 2023. Dataset: https://doi.org/10.5281/zenodo.10047292 (CC BY 4.0). Keep the credit line in the page footer.
