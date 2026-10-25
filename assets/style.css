@@ -80,10 +80,9 @@ a:focus-visible, button:focus-visible {
 }
 .logo .trace {
   display: block;
-  width: 115%;
-  margin-left: -7.5%;
-  height: 0.55em;
-  margin-top: 0.08em;
+  width: 100%;
+  height: 0.26em;
+  margin-top: -0.17em;
   overflow: visible;
 }
 .trace path {
