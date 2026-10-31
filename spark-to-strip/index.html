@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Watch the electricity move through the heart, see why each lead draws what it draws, and train yourself to name ECG rhythms on sight.">
+<title>Spark to strip · sam.med</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&family=Young+Serif&display=swap">
+<style>
+/* Layout: sam.med sheet on ECG paper. Learn = heart + caption side by side, strip under; Drill and Systematic = strip card + side panel. */
+:root{
+  --paper:#FBF3F1; --grid-minor:rgba(215,38,61,.07); --grid-major:rgba(215,38,61,.14);
+  --ink:#1D2340; --muted:#5E6380; --trace:#D7263D; --scrubs:#2E8B77; --scrubs-ink:#ffffff;
+  --panel:#FFFDFC; --line:#E9D3CF; --warn:#B7790F;
+  --strip-bg:#FFF8F6; --strip-minor:rgba(215,38,61,.16); --strip-major:rgba(215,38,61,.34); --strip-ink:#1D2340;
+  --tissue-a:#F6DCD7; --tissue-v:#F0D2CD; --tissue-line:#D9AFA8; --wire:#1D2340;
+  --good-bg:rgba(46,139,119,.12); --bad-bg:rgba(215,38,61,.09);
+  --serif:"Young Serif",Georgia,"Times New Roman",serif;
+  --sans:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#141A2E; --grid-minor:rgba(240,90,110,.06); --grid-major:rgba(240,90,110,.12);
+  --ink:#F1EEF6; --muted:#A9ADC4; --trace:#FF5A6E; --scrubs:#3FA88F; --scrubs-ink:#0E1424;
+  --panel:#1B2239; --line:#2C3452; --warn:#E0B54A;
+  --strip-bg:#151B2F; --strip-minor:rgba(255,90,110,.13); --strip-major:rgba(255,90,110,.28); --strip-ink:#F1EEF6;
+  --tissue-a:#33304A; --tissue-v:#2E2C45; --tissue-line:#4A4566; --wire:#F1EEF6;
+  --good-bg:rgba(63,168,143,.16); --bad-bg:rgba(255,90,110,.12); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#141A2E; --grid-minor:rgba(240,90,110,.06); --grid-major:rgba(240,90,110,.12);
+  --ink:#F1EEF6; --muted:#A9ADC4; --trace:#FF5A6E; --scrubs:#3FA88F; --scrubs-ink:#0E1424;
+  --panel:#1B2239; --line:#2C3452; --warn:#E0B54A;
+  --strip-bg:#151B2F; --strip-minor:rgba(255,90,110,.13); --strip-major:rgba(255,90,110,.28); --strip-ink:#F1EEF6;
+  --tissue-a:#33304A; --tissue-v:#2E2C45; --tissue-line:#4A4566; --wire:#F1EEF6;
+  --good-bg:rgba(63,168,143,.16); --bad-bg:rgba(255,90,110,.12); color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;font-family:var(--sans);font-size:1.0625rem;line-height:1.55;color:var(--ink);background-color:var(--paper);
+  background-image:linear-gradient(var(--grid-major) 1px,transparent 1px),linear-gradient(90deg,var(--grid-major) 1px,transparent 1px),linear-gradient(var(--grid-minor) 1px,transparent 1px),linear-gradient(90deg,var(--grid-minor) 1px,transparent 1px);
+  background-size:40px 40px,40px 40px,8px 8px,8px 8px;min-height:100%}
+a{color:inherit}
+button{font:inherit;color:inherit}
+a:focus-visible,button:focus-visible{outline:3px solid var(--trace);outline-offset:3px;border-radius:6px}
+.page{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:1.5rem 4rem}
+.back{display:inline-block;font-family:var(--serif);font-size:1.4rem;text-decoration:none;margin-bottom:1rem}
+a.back:hover{color:var(--trace)}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:clamp(1.1rem,3.5vw,2rem);min-width:0}
+.intro{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:1rem 2rem;margin-bottom:1.25rem}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(2rem,5vw,2.8rem);line-height:1.08;margin:0}
+.intro p{margin:.5rem 0 0;max-width:56ch;color:var(--muted);font-size:1.05rem}
+.tabs{display:flex;gap:.35rem;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:.55rem 1.1rem;font-weight:700;cursor:pointer}
+.tab[aria-current="page"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+h2{font-family:var(--serif);font-weight:400;font-size:1.45rem;line-height:1.2;margin:0 0 .5rem;text-wrap:balance}
+h3{font-family:var(--serif);font-weight:400;font-size:1.15rem;margin:0 0 .4rem}
+.small{font-size:.9rem;color:var(--muted)}
+.label{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 .45rem}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:.4rem .8rem;font-size:.92rem;font-weight:500;cursor:pointer;text-align:left;line-height:1.25}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--scrubs);border-color:var(--scrubs);color:var(--scrubs-ink)}
+.chip.right{background:var(--good-bg);border-color:var(--scrubs)}
+.chip.wrong{background:var(--bad-bg);border-color:var(--trace);text-decoration:line-through}
+.chip[disabled]{cursor:default}
+.btn{display:inline-flex;align-items:center;gap:.45rem;border:0;border-radius:14px;background:var(--scrubs);color:var(--scrubs-ink);font-weight:700;padding:.7rem 1.15rem;cursor:pointer}
+.btn:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.strip{position:relative;overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--strip-bg)}
+.strip canvas{display:block}
+.note{border-left:3px solid var(--trace);padding:.2rem 0 .2rem .9rem;margin:.6rem 0}
+.mono{font-variant-numeric:tabular-nums}
+/* learn */
+.learn-top{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:1.5rem;align-items:start}
+@media (max-width:860px){.learn-top{grid-template-columns:minmax(0,1fr)}}
+#cv-heart{width:100%;max-width:430px;height:auto;display:block;margin:0 auto;border-radius:16px;background:var(--strip-bg);border:1px solid var(--line)}
+.caption{border-radius:16px;background:var(--paper);border:1px solid var(--line);padding:1rem 1.1rem;min-height:11.5rem}
+.caption .when{font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--trace)}
+.caption h2{margin:.25rem 0 .4rem;font-size:1.35rem}
+.caption p{margin:0}
+.ctl{display:grid;gap:.9rem;margin-top:1rem}
+.key{display:flex;flex-wrap:wrap;gap:.35rem 1rem;font-size:.85rem;color:var(--muted);margin-top:.6rem}
+.key i{display:inline-block;width:.9rem;height:.6rem;border-radius:3px;vertical-align:middle;margin-right:.3rem}
+.pgroup{display:grid;grid-template-columns:150px minmax(0,1fr);gap:.4rem .9rem;padding:.55rem 0;border-top:1px solid var(--line)}
+.pgroup:first-child{border-top:0}
+.pgroup .g{font-size:.85rem;color:var(--muted);padding-top:.35rem}
+@media (max-width:560px){.pgroup{grid-template-columns:minmax(0,1fr)}.pgroup .g{padding-top:0}}
+.chain{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:.5rem}
+@media (max-width:760px){.chain{grid-template-columns:minmax(0,1fr)}}
+.chain>div{border-radius:16px;border:1px solid var(--line);padding:.9rem 1rem;background:var(--paper)}
+.chain .n{font-family:var(--serif);color:var(--trace);font-size:1.1rem}
+.chain p,.chain ul{margin:.35rem 0 0}
+.chain ul{padding-left:1.1rem}
+.section{margin-top:1.5rem}
+/* drill */
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:1.25rem;align-items:start}
+@media (max-width:900px){.two-col{grid-template-columns:minmax(0,1fr)}}
+.answers{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.5rem;margin-top:1rem}
+.answers .chip{border-radius:12px;padding:.75rem .9rem;font-size:1rem}
+.answers kbd{font:600 .78rem var(--sans);color:var(--muted);margin-right:.45rem}
+.cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--panel);color:var(--muted);font-family:var(--serif);font-size:1.2rem}
+.timer{font-family:var(--serif);font-size:1.4rem}
+.verdict{border-radius:14px;padding:.75rem 1rem;margin-top:1rem}
+.verdict.ok{background:var(--good-bg);border:1px solid var(--scrubs)}
+.verdict.no{background:var(--bad-bg);border:1px solid var(--trace)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
+.stats .v{font-family:var(--serif);font-size:1.6rem;line-height:1}
+.stats .k{font-size:.78rem;color:var(--muted)}
+.mastery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.mcell{border-radius:6px;background:var(--line);font-size:.68rem;font-weight:700;line-height:1.1;min-height:2.3rem;display:flex;align-items:center;justify-content:center;text-align:center;padding:2px;overflow:hidden}
+.conf{margin:0;padding-left:1.1rem;font-size:.9rem}
+.compare{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:.75rem}
+.compare ul{margin:.2rem 0 0;padding-left:1.1rem}
+/* systematic */
+.step{padding:.8rem 0;border-top:1px solid var(--line)}
+.step:first-child{border-top:0}
+.step.locked{opacity:.35;pointer-events:none}
+.step h3{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}
+.step .n{font-family:var(--sans);font-size:.8rem;font-weight:700;color:var(--muted)}
+.step .done{font-family:var(--sans);font-size:.92rem;color:var(--scrubs);font-weight:700}
+.hint{font-size:.92rem;background:var(--bad-bg);border-left:3px solid var(--trace);padding:.5rem .75rem;margin-top:.6rem;border-radius:0 8px 8px 0}
+.cal{font-size:.9rem;color:var(--muted)}
+.cal b{color:var(--ink)}
+.site-foot{text-align:center;padding:2rem 1rem 0;font-size:.9rem;color:var(--muted)}
+.site-foot p{margin:.25rem auto;max-width:62ch}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+
+<div class="page">
+<a class="back" href="../">sam.med</a>
+<div class="sheet">
+  <div class="intro">
+    <div>
+      <h1>Spark to strip</h1>
+      <p>Watch the electricity move through the heart, see why each lead draws what it draws, then train yourself to name rhythms on sight.</p>
+    </div>
+    <nav class="tabs" aria-label="Mode">
+      <button class="tab" id="tab-learn" data-mode="learn">Learn</button>
+      <button class="tab" id="tab-drill" data-mode="drill">Drill</button>
+      <button class="tab" id="tab-systematic" data-mode="systematic">Systematic</button>
+    </nav>
+  </div>
+
+  <!-- LEARN -->
+  <section id="mode-learn">
+    <div class="learn-top">
+      <div>
+        <canvas id="cv-heart" width="430" height="440" aria-label="Heart with the depolarisation wave, its direction, and the selected lead's axis"></canvas>
+        <div class="key">
+          <span><i style="background:var(--trace);opacity:.55"></i>depolarising</span>
+          <span><i style="background:var(--scrubs);opacity:.55"></i>recovering</span>
+          <span><b>→</b> direction of the wave</span>
+          <span><i style="background:var(--trace)"></i>/<i style="background:var(--scrubs)"></i> pen up / down</span>
+        </div>
+      </div>
+      <div>
+        <div class="caption" aria-live="polite">
+          <div class="when" id="cap-when">Normal sinus rhythm</div>
+          <h2 id="cap-title">Atria depolarise</h2>
+          <p id="cap-body"></p>
+          <p class="small" id="cap-lead" style="margin-top:.6rem"></p>
+        </div>
+        <div class="ctl">
+          <div class="row">
+            <button class="btn ghost" id="l-back" aria-label="Previous stage">◀ Back</button>
+            <button class="btn" id="l-play">Pause</button>
+            <button class="btn ghost" id="l-next" aria-label="Next stage">Next ▶</button>
+          </div>
+          <div><p class="label">Speed</p><div class="chips" id="l-speed"></div></div>
+          <div><p class="label">Look from lead</p><div class="chips" id="l-leads"></div>
+            <p class="small" style="margin:.4rem 0 0">Each lead watches from a different angle. A wave heading toward its + electrode draws upward; heading away draws downward; side-on draws almost nothing.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="row" style="justify-content:space-between;margin-bottom:.4rem"><p class="label" style="margin:0" id="l-strip-label">Lead II · the rhythm strip lead</p><span class="small mono" id="l-time"></span></div>
+      <div class="strip"><canvas id="cv-learn"></canvas></div>
+    </div>
+    <div class="section">
+      <h2 id="r-name">Normal sinus rhythm</h2>
+      <div class="chain">
+        <div><span class="n">1 · What's different</span><p id="r-mech"></p></div>
+        <div><span class="n">2 · What the electricity does</span><p id="r-wave"></p></div>
+        <div><span class="n">3 · What you see</span><ul id="r-look"></ul></div>
+      </div>
+    </div>
+    <div class="section">
+      <p class="label">Pick a rhythm</p>
+      <div id="l-rhythms"></div>
+    </div>
+  </section>
+
+  <!-- DRILL -->
+  <section id="mode-drill" hidden>
+    <p class="note">Name each strip as fast as you can. Rhythms are shuffled, every strip is different, and the drill gives you more of the pairs you mix up. Aim for under 5 seconds. Keys 1–6 answer; Enter moves on.</p>
+    <div class="section"><p class="label">Include</p><div class="chips" id="d-filters"></div></div>
+    <div class="two-col section">
+      <div>
+        <div class="row" style="justify-content:space-between;margin-bottom:.4rem">
+          <p class="label" style="margin:0" id="d-count">Strip 1 · lead II</p>
+          <div class="row"><label class="small" style="display:flex;gap:.35rem;align-items:center"><input type="checkbox" id="d-flash"> Hide after 5 s</label><span class="timer mono" id="d-timer">0.0 s</span></div>
+        </div>
+        <div class="strip" id="d-wrap"><canvas id="cv-drill"></canvas><div class="cover" id="d-cover" hidden>Strip hidden. Answer from memory.</div></div>
+        <div class="answers" id="d-answers"></div>
+        <div id="d-feedback"></div>
+      </div>
+      <aside>
+        <p class="label">This session</p>
+        <div class="stats">
+          <div><div class="v mono" id="s-acc">–</div><div class="k">accuracy, last 30</div></div>
+          <div><div class="v mono" id="s-time">–</div><div class="k">median correct</div></div>
+          <div><div class="v mono" id="s-streak">0</div><div class="k">streak</div></div>
+        </div>
+        <p class="label">Recent accuracy by rhythm</p>
+        <div class="mastery" id="s-mastery"></div>
+        <p class="label" style="margin-top:1rem">You mix up</p>
+        <ol class="conf" id="s-conf"></ol>
+        <button class="btn ghost" id="s-reset" style="margin-top:1rem">Reset my stats</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- SYSTEMATIC -->
+  <section id="mode-systematic" hidden>
+    <p class="note">Read every strip the same way: rate, rhythm, atrial activity, P to QRS, PR, QRS, then name it. Click the strip to measure with calipers. After three clean reads of a rhythm you name it first, and the checklist only comes back if you miss.</p>
+    <div class="section"><p class="label">Include</p><div class="chips" id="y-filters"></div></div>
+    <div class="two-col section">
+      <div>
+        <div class="row" style="justify-content:space-between;margin-bottom:.4rem">
+          <p class="label" style="margin:0">Lead II · click to measure</p>
+          <div class="row"><span class="cal mono" id="y-cal">Click two points</span><button class="chip" id="y-march" aria-pressed="false">March</button><button class="chip" id="y-clear">Clear</button></div>
+        </div>
+        <div class="strip"><canvas id="cv-sys" style="cursor:crosshair"></canvas></div>
+        <div id="y-steps" style="margin-top:.5rem"></div>
+      </div>
+      <aside>
+        <p class="label">Checklist</p>
+        <div class="chips" id="y-mode"></div>
+        <p class="small" id="y-mode-note"></p>
+        <p class="label" style="margin-top:1rem">Clean reads (3 unlocks name-first)</p>
+        <div class="mastery" id="y-mastery"></div>
+      </aside>
+    </div>
+  </section>
+</div>
+<footer class="site-foot">
+  <p>Strips are generated from a simplified model of the heart's electrical vector, with random variation in rate, size, noise and baseline. A study aid, not medical advice. Check real strips with your seniors.</p>
+</footer>
+</div>
+
+<script>
+/*ENGINE*/
+const FS=500,DUR=10,deg=Math.PI/180;
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function mkR(seed){const r=mulberry(seed);return{f:r,u:(a,b)=>a+(b-a)*r(),i:(a,b)=>Math.floor(a+(b-a+1)*r()),p:arr=>arr[Math.floor(r()*arr.length)],c:p=>r()<p,n:()=>{let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}}}
+
+const GROUPS={i:'Sinus',ii:'Atrial ectopy & SVT',iii:'Atrial arrhythmias',iv:'Heart blocks',v:'Junctional',vi:'Ventricular ectopy',vii:'VT & VF',xi:'Paced',xii:'WPW'};
+const RHY={
+ nsr:{n:'Normal sinus rhythm',s:'NSR',g:'i',mech:'Nothing. This is the reference every other rhythm is a change to.',wave:'The SA node fires. The wave spreads down and to the left through the atria (P), pauses in the AV node (flat PR segment), races down the bundles to the ventricles (QRS), then the ventricles recover (T).',look:['Upright P before every QRS','PR 120–200 ms, constant','Regular, 60–100/min']},
+ stach:{n:'Sinus tachycardia',s:'S tachy',g:'i',mech:'The SA node fires faster: pain, fever, hypovolaemia, PE, anaemia, anxiety.',wave:'Every beat takes the normal path. Only the resting gap between beats shrinks, so the next P creeps onto the previous T.',look:['Normal P before every QRS','Rate over 100, rarely above 150 at rest','P may sit on the preceding T']},
+ sbrady:{n:'Sinus bradycardia',s:'S brady',g:'i',mech:'The SA node fires slower: sleep, fitness, beta-blockers, hypothyroidism, raised ICP.',wave:'Normal path every beat, with long stretches where every cell is resting and the line is flat.',look:['Normal P before every QRS','Rate under 60','Long, even gaps']},
+ sarr:{n:'Sinus arrhythmia',s:'S arrhyth',g:'i',mech:'Breathing changes vagal tone: the SA node speeds up on inspiration and slows on expiration. Normal in the young.',wave:'Identical beats, normal path. Only the timing between SA node discharges stretches and shrinks smoothly.',look:['Identical P waves throughout','R–R gradually lengthens and shortens','Smooth change, no sudden early beat']},
+ pac:{n:'Premature atrial beats',s:'PAC',g:'ii',mech:'An irritable spot in the atrium fires before the SA node is due.',wave:'The early beat starts in the left atrium, so the atrial wave travels a different way and the P changes shape. It then uses the normal AV node and bundles, so the QRS is normal.',look:['Early beat with a different P','Normal narrow QRS','Pause after is shorter than two cycles']},
+ ectopic:{n:'Ectopic atrial rhythm',s:'Ectopic A',g:'ii',mech:'A focus low in the right atrium takes over from the SA node.',wave:'The atria are activated from the bottom up, so the atrial wave heads away from lead II’s + electrode. The P wave flips upside down. The rest of the beat is normal.',look:['P inverted in II','One P per QRS, PR normal or slightly short','Regular, usually normal rate']},
+ svt:{n:'Narrow-complex SVT',s:'SVT',g:'ii',mech:'A re-entry circuit in and around the AV node (AVNRT) keeps looping.',wave:'Each lap sends a wave down the normal bundles (narrow QRS) and up into the atria at the same moment (retrograde P), so the P is buried in or just after the QRS.',look:['Regular, 150–250/min','Narrow QRS','P waves hidden']},
+ mat:{n:'Multifocal atrial tachycardia',s:'MAT',g:'iii',mech:'Several irritable atrial foci, usually from a strained right atrium in chronic lung disease.',wave:'Each beat starts from a different atrial spot, so each atrial wave heads a different way and each P looks different. Timing is irregular.',look:['Three or more P shapes','PR varies','Irregular, over 100']},
+ flutter:{n:'Atrial flutter',s:'Flutter',g:'iii',mech:'One large re-entry wave circles the tricuspid valve about 300 times a minute.',wave:'The wave never stops moving, so there is no flat baseline. As it climbs the septum it heads away from lead II, drawing the long down-slope of the sawtooth. The AV node only lets every second or fourth wave through.',look:['Sawtooth baseline in II, III, aVF','Atrial rate about 300','2:1 gives a fixed rate near 150']},
+ af:{n:'Atrial fibrillation',s:'AF',g:'iii',mech:'The atria are taken over by hundreds of chaotic wavelets.',wave:'The wavelets head in every direction and mostly cancel out, so no P wave forms, only a wobble. The AV node passes impulses through at random, so the QRS timing is random.',look:['No P waves','Fibrillatory or flat baseline','Irregularly irregular']},
+ avb1:{n:'First-degree AV block',s:'1° AVB',g:'iv',mech:'The AV node conducts slowly.',wave:'Every impulse gets through, but it lingers longer in the AV node. That node is too small to register, so the flat PR segment simply gets longer.',look:['Every P conducts','PR over 200 ms','PR the same every beat']},
+ mobitz1:{n:'Mobitz I (Wenckebach)',s:'Mobitz I',g:'iv',mech:'The AV node tires with each beat.',wave:'The AV delay grows beat by beat until one impulse fails. The atria still draw a P, but no wave reaches the ventricles, so no QRS. The node recovers in the pause.',look:['PR lengthens beat by beat','Then a P with no QRS','Grouped beating']},
+ mobitz2:{n:'Mobitz II',s:'Mobitz II',g:'iv',mech:'Disease below the AV node, in the His–Purkinje system.',wave:'The AV delay is constant, but conduction through the His–Purkinje system is all or nothing. When it fails, a P appears with no QRS, without warning.',look:['PR constant in conducted beats','Sudden P with no QRS','Needs pacing']},
+ chb:{n:'Complete heart block',s:'CHB',g:'iv',mech:'Nothing crosses from atria to ventricles.',wave:'The atria keep firing from the SA node. Below the block, a backup pacemaker (junctional, narrow; or ventricular, wide) fires the ventricles on its own slower schedule.',look:['P waves march at their own rate','QRS march at a slower rate','No fixed PR']},
+ junctional:{n:'Junctional rhythm',s:'Junctional',g:'v',mech:'The SA node fails; the AV junction takes over at 40–60/min.',wave:'The beat starts in the middle of the heart. It goes down the normal bundles (narrow QRS) and backwards up into the atria, heading away from lead II, so any P is inverted and sits just before, within or after the QRS.',look:['Narrow QRS at 40–60/min','P absent or inverted','No normal P before the QRS']},
+ pvc:{n:'Premature ventricular beats',s:'PVC',g:'vi',mech:'A ventricular cell fires early.',wave:'The beat starts in ventricular muscle, not the bundles, so it crawls cell to cell (wide QRS) in an unusual direction (odd shape). Recovery is abnormal too, so the T points the opposite way.',look:['Early, wide, bizarre QRS, no P','T opposite to the QRS','Pause equals two normal cycles']},
+ vt:{n:'Ventricular tachycardia',s:'VT',g:'vii',mech:'A ventricular circuit or focus fires repeatedly.',wave:'Every beat crawls through muscle from the same spot (wide, identical complexes). The atria keep their own slower rhythm, and now and then a sinus impulse slips through (capture or fusion beat).',look:['Broad and regular, usually 120–250','AV dissociation','Capture and fusion beats clinch it']},
+ vf:{n:'Ventricular fibrillation',s:'VF',g:'vii',mech:'Cardiac arrest: the ventricles quiver.',wave:'No organised wave at all. Many wavelets in random directions draw a chaotic line.',look:['No identifiable QRS','Chaotic waveform','Amplitude varies']},
+ pace_a:{n:'Atrial pacing',s:'A paced',g:'xi',mech:'A pacemaker lead in the right atrium starts each beat.',wave:'The device fires (spike), the atria depolarise from the lead tip (P), then the normal AV node and bundles take over (narrow QRS).',look:['Spike before each P','Narrow QRS after a normal PR','Regular at the set rate']},
+ pace_v:{n:'Ventricular pacing',s:'V paced',g:'xi',mech:'A pacemaker lead at the right ventricular apex starts each beat.',wave:'The wave starts at the apex and climbs up and to the left, cell to cell, so the QRS is wide and points away from lead II.',look:['Spike before each QRS','Broad QRS, LBBB-like','Unrelated to atrial activity']},
+ pace_dual:{n:'Dual-chamber pacing',s:'Dual paced',g:'xi',mech:'Leads in the right atrium and right ventricle.',wave:'The device fires the atrium, waits a set AV delay, then fires the ventricle from the apex.',look:['Spike before the P','Second spike before a broad QRS','Fixed spike-to-spike delay']},
+ pace_fcap:{n:'Pacing: failure to capture',s:'Fail capture',g:'xi',mech:'The lead fires but the heart does not respond: displaced lead, high threshold, electrolytes.',wave:'A spike appears, but no wave starts from the lead tip, so nothing follows it.',look:['Spike with no QRS after it','Pauses','Captured beats look paced']},
+ pace_fsense:{n:'Pacing: failure to sense',s:'Fail sense',g:'xi',mech:'The pacemaker cannot see the heart’s own beats.',wave:'It fires on its fixed timer anyway. Spikes that land while the ventricles are recovering do nothing; others trigger a paced beat among the native ones.',look:['Spikes at fixed intervals regardless','Spikes on T waves or inside QRS','Mix of native and paced beats']},
+ wpw:{n:'Wolff–Parkinson–White',s:'WPW',g:'xii',mech:'An accessory pathway connects atrium and ventricle, bypassing the AV node.',wave:'The impulse skips the AV-node delay and starts the ventricle early near the pathway, slowly, cell to cell (delta wave). Then the normal fast route catches up.',look:['Short PR (<120 ms)','Slurred delta-wave upstroke','Wide QRS']},
+ af_wpw:{n:'AF with pre-excitation',s:'AF + WPW',g:'xii',mech:'AF in a patient with an accessory pathway.',wave:'Chaotic atrial impulses pour down the pathway with no AV-node brake. Each beat is pre-excited by a different amount, so widths vary. Avoid AV nodal blockers; use synchronised cardioversion.',look:['Irregularly irregular, very fast','Broad QRS of varying width','No P waves']}};
+const KEYS=Object.keys(RHY);
+const CONFUSE={nsr:['stach','sbrady','sarr','avb1'],stach:['svt','flutter','nsr','mat'],sbrady:['junctional','nsr','avb1','chb'],sarr:['af','pac','nsr','mat'],pac:['pvc','sarr','mobitz2','nsr'],ectopic:['junctional','nsr','pac'],svt:['flutter','stach','vt'],mat:['af','flutter','sarr','pac'],flutter:['svt','af','stach'],af:['mat','flutter','af_wpw','sarr'],avb1:['nsr','mobitz1','sbrady'],mobitz1:['mobitz2','avb1','pac','chb'],mobitz2:['mobitz1','chb','pac'],chb:['mobitz2','junctional','avb1','mobitz1'],junctional:['sbrady','ectopic','chb'],pvc:['pac','pace_fsense','vt'],vt:['svt','af_wpw','vf','pace_v'],vf:['vt','af','af_wpw'],pace_a:['pace_dual','nsr','pace_v'],pace_v:['pace_dual','vt','pace_fcap'],pace_dual:['pace_v','pace_a'],pace_fcap:['pace_v','pace_fsense','chb'],pace_fsense:['pace_fcap','pvc','pace_v'],wpw:['nsr','avb1','pvc'],af_wpw:['af','vt','vf']};
+
+function baseCfg(rg){return{saOn:true,saRate:Math.round(rg.u(64,92)),saResp:false,atria:'sinus',pacs:false,av:'normal',flutterRatio:2,escape:'junctional',accessory:false,vent:'none',pacer:'none',pacerFault:'none',
+ pr:rg.u(.14,.18),escRate:rg.u(40,52),junctRate:rg.u(42,58),svtRate:rg.u(160,215),vtRate:rg.u(140,195),afRate:rg.u(85,135),matRate:rg.u(108,135),pacerRate:rg.u(60,72),wenckN:rg.p([3,4,4,5]),mob2N:rg.p([3,4]),pvcEvery:rg.i(3,6),pacEvery:rg.i(3,5),junctP:rg.p(['none','after','before']),vtPol:rg.p([1,-1]),pvcPol:rg.p([1,-1]),firstPR:rg.u(.26,.34),fcapEvery:rg.i(3,4),vtCap:rg.c(.6)}}
+function preset(key,rg){const P=baseCfg(rg);switch(key){
+ case 'stach':P.saRate=Math.round(rg.u(108,145));break;
+ case 'sbrady':P.saRate=Math.round(rg.u(38,53));break;
+ case 'sarr':P.saRate=Math.round(rg.u(62,80));P.saResp=true;break;
+ case 'pac':P.pacs=true;P.saRate=Math.round(rg.u(58,78));break;
+ case 'ectopic':P.atria='ectopic';break;
+ case 'svt':P.av='avnrt';break;
+ case 'mat':P.atria='mat';break;
+ case 'flutter':P.atria='flutter';P.flutterRatio=rg.p([2,2,4]);break;
+ case 'af':P.atria='fib';break;
+ case 'avb1':P.av='first';break;
+ case 'mobitz1':P.av='wenck';P.saRate=Math.round(rg.u(72,95));break;
+ case 'mobitz2':P.av='mobitz2';P.saRate=Math.round(rg.u(72,95));break;
+ case 'chb':P.av='chb';P.saRate=Math.round(rg.u(72,100));P.escape=rg.p(['junctional','ventricular']);P.escRate=P.escape==='junctional'?rg.u(40,52):rg.u(28,40);break;
+ case 'junctional':P.saOn=false;break;
+ case 'pvc':P.vent='pvc';break;
+ case 'vt':P.vent='vt';break;
+ case 'vf':P.vent='vf';break;
+ case 'pace_a':P.pacer='A';break;
+ case 'pace_v':P.pacer='V';P.atria='fib';break;
+ case 'pace_dual':P.pacer='DDD';break;
+ case 'pace_fcap':P.pacer='V';P.atria='fib';P.pacerFault='capture';break;
+ case 'pace_fsense':P.pacer='V';P.pacerFault='sense';P.saRate=Math.round(rg.u(74,92));break;
+ case 'wpw':P.accessory=true;break;
+ case 'af_wpw':P.atria='fib';P.accessory=true;P.afRate=rg.u(185,250);break;}
+ return P}
+function classify(c){
+ if(c.vent==='vf')return'vf';
+ if(c.vent==='vt'&&c.pacer==='none')return'vt';
+ if(c.pacer!=='none'){if(c.pacerFault==='capture')return'pace_fcap';if(c.pacerFault==='sense')return'pace_fsense';return c.pacer==='A'?'pace_a':c.pacer==='V'?'pace_v':'pace_dual'}
+ if(c.atria==='fib')return c.accessory?'af_wpw':'af';
+ if(c.atria==='flutter')return'flutter';if(c.atria==='mat')return'mat';if(c.av==='avnrt')return'svt';
+ if(c.av==='chb')return'chb';if(c.av==='mobitz2')return'mobitz2';if(c.av==='wenck')return'mobitz1';
+ if(c.accessory)return'wpw';if(c.av==='first')return'avb1';if(!c.saOn)return'junctional';
+ if(c.vent==='pvc')return'pvc';if(c.pacs)return'pac';if(c.atria==='ectopic')return'ectopic';if(c.saResp)return'sarr';
+ if(c.saRate>100)return'stach';if(c.saRate<60)return'sbrady';return'nsr'}
+
+/* timing: when each chamber depolarises */
+function generate(cfg,seed,va){
+ const rg=mkR(seed),dur=DUR;
+ const out={dur,P:[],V:[],S:[],nocap:[],F:[],base:{},cfg};
+ out.lead={gain:1+rg.u(-.12,.22)*va,p:1+rg.u(-.12,.25)*va,t:1+rg.u(-.25,.25)*va,noise:.003+rg.u(0,.012)*va,wa:rg.u(0,.1)*va,wf:rg.u(.12,.33),wph:rg.u(0,6.28),seed:rg.i(1,1e9)};
+ if(cfg.vent==='vf'){out.base.vf={f:[rg.u(3.4,4.4),rg.u(4.8,5.9),rg.u(6.1,7.2)],ph:[rg.u(0,6.3),rg.u(0,6.3),rg.u(0,6.3)],ef:rg.u(.25,.5),eph:rg.u(0,6.3),amp:rg.u(.4,.75)};return out}
+ let A=[];
+ const fs=cfg.pacerFault==='sense'&&cfg.pacer!=='none';
+ const pA=(cfg.pacer==='A'||cfg.pacer==='DDD')&&!fs,pV=(cfg.pacer==='V'||cfg.pacer==='DDD')&&!fs,fcap=cfg.pacerFault==='capture';
+ if(pA){const RR=60/cfg.pacerRate;let n=0;for(let t=rg.u(.1,RR);t<dur+.5;t+=RR){n++;out.S.push({t,ch:'A'});if(fcap&&cfg.pacer==='A'&&n%cfg.fcapEvery===0){out.nocap.push({t,ch:'A'});continue}A.push({t:t+.045,kind:'pacedA'})}}
+ else if(cfg.atria==='flutter'){const per=rg.u(.19,.215);out.base.flutter={per,ph:rg.u(0,1),amp:rg.u(.2,.3)};for(let t=(1-out.base.flutter.ph)*per;t<dur+.5;t+=per)A.push({t,kind:'F'})}
+ else if(cfg.atria==='fib'){out.base.fib={f:[rg.u(5,6),rg.u(6.5,7.5),rg.u(8,9.5)],ph:[rg.u(0,6.3),rg.u(0,6.3),rg.u(0,6.3),rg.u(0,6.3)],amp:rg.u(.035,.07)}}
+ else if(cfg.atria==='mat'){const RR=60/cfg.matRate;let last=-1;for(let t=rg.u(.05,RR);t<dur+.5;t+=RR*rg.u(.72,1.3)){let s=rg.i(0,3);if(s===last)s=(s+1)%4;last=s;A.push({t,kind:'mat',shape:s})}}
+ else if(cfg.saOn){const RR=60/cfg.saRate;let t=rg.u(.05,RR*.9),n=0;const per=rg.u(3.2,4.4),ph=rg.u(0,6.28),kind=cfg.atria==='ectopic'?'ectopic':'sinus';
+  while(t<dur+.5){A.push({t,kind});n++;const rr=RR*(1+(cfg.saResp?.3*Math.sin(2*Math.PI*t/per+ph):0));
+   if(cfg.pacs&&n%cfg.pacEvery===0&&t+rr<dur){const tp=t+rr*rg.u(.62,.72);A.push({t:tp,kind:'pac'});t=tp+rr}else t+=rr}}
+ let V=[];const nk=cfg.accessory?'delta':'narrow';const hadA=A.length>0;
+ if(pV){
+  if(cfg.pacer==='DDD'){let n=0;for(const a of A){n++;const t=a.t+.13;out.S.push({t,ch:'V'});if(fcap&&n%cfg.fcapEvery===0){out.nocap.push({t,ch:'V'});continue}V.push({t:t+.01,kind:'paced',org:'pacer'})}}
+  else{const RR=60/cfg.pacerRate;let n=0;for(let t=rg.u(.1,RR);t<dur+.5;t+=RR){n++;out.S.push({t,ch:'V'});if(fcap&&n%cfg.fcapEvery===0){out.nocap.push({t,ch:'V'});continue}V.push({t:t+.01,kind:'paced',org:'pacer'})}}}
+ else if(cfg.vent==='vt'){const RR=60/cfg.vtRate;let t=rg.u(.05,RR),since=0,need=rg.i(9,16);const aT=A.map(a=>a.t);
+  while(t<dur+.5){V.push({t,kind:'wide',pol:cfg.vtPol,org:'vent'});since++;let nt=t+RR;
+   if(cfg.vtCap&&since>=need){const p=aT.find(x=>x+.14>t+.24&&x+.14<nt+.025);if(p!==undefined){const ct=p+.14;V.push({t:ct,kind:ct<nt-.035?'capture':'fusion',pol:cfg.vtPol,org:'cond',aT:p});since=0;need=rg.i(9,16);nt=ct+RR}}
+   t=nt}}
+ else if(cfg.av==='avnrt'&&cfg.atria!=='fib'&&cfg.atria!=='flutter'){A=[];const RR=60/cfg.svtRate;for(let t=rg.u(.05,RR);t<dur+.5;t+=RR){V.push({t,kind:'narrow',org:'reentry'});A.push({t:t+.035,kind:'retro'})}}
+ else if(cfg.atria==='fib'){const rate=cfg.accessory?Math.max(cfg.afRate,190):cfg.afRate;const m=60/rate;let t=rg.u(.05,m);
+  while(t<dur+.5){V.push(cfg.accessory?{t,kind:'deltaV',d:rg.u(.3,1),wv:rg.u(.9,1.7),org:'fibc',acc:true}:{t,kind:'narrow',org:'fibc'});t+=Math.max(cfg.accessory?.22:.34,m*rg.u(.55,1.45))}}
+ else if(cfg.atria==='flutter'){let next=rg.i(0,1);const step=()=>cfg.flutterRatio==='var'?rg.i(2,4):+cfg.flutterRatio;
+  for(let j=0;j<A.length;j++){if(j===next){V.push({t:A[j].t+.27,kind:nk,org:'cond',aT:A[j].t,acc:cfg.accessory});next=j+step()}}}
+ else if(!hadA||cfg.av==='chb'){const junc=cfg.av==='chb'?cfg.escape==='junctional':true;const rate=cfg.av==='chb'?cfg.escRate:cfg.junctRate;const RR=60/rate;
+  for(let t=rg.u(.15,RR);t<dur+.5;t+=RR){V.push({t,kind:junc?'narrow':'wide',pol:cfg.vtPol,org:junc?'junction':'vent'});if(junc&&!hadA&&cfg.junctP!=='none')A.push({t:t+(cfg.junctP==='after'?.1:-.075),kind:'retro'})}}
+ else{let i=0;for(const a of A){let pr=cfg.av==='first'?cfg.firstPR:cfg.pr,cond=true;
+  if(cfg.accessory)pr=.095;if(a.kind==='pac')pr+=.02;if(a.kind==='ectopic')pr=Math.max(.12,pr-.02);if(a.kind==='mat')pr=rg.u(.12,.21);if(a.kind==='pacedA')pr=.17;
+  if(cfg.av==='wenck'){const k=i%cfg.wenckN;if(k===cfg.wenckN-1)cond=false;else pr=.17+[0,.11,.16,.19,.21][k]}
+  else if(cfg.av==='mobitz2'){if(i%cfg.mob2N===cfg.mob2N-1)cond=false}
+  i++;if(cond)V.push({t:a.t+pr,kind:nk,org:'cond',aT:a.t,acc:cfg.accessory})}}
+ if(cfg.vent==='pvc'&&!pV&&V.length>3){const nv=[];let next=rg.i(1,3);for(let k=0;k<V.length;k++){if(k===next&&k>0&&k<V.length-1){const rr=V[k].t-V[k-1].t;nv.push({t:V[k-1].t+rr*rg.u(.5,.6),kind:'pvc',pol:cfg.pvcPol,org:'vent'});next=k+rg.i(3,cfg.pvcEvery+1)}else nv.push(V[k])}V=nv}
+ if(fs){const RR=60/Math.min(cfg.pacerRate,62);for(let t=rg.u(.2,RR);t<dur+.3;t+=RR){out.S.push({t,ch:'V'});let last=null;for(const v of V)if(v.t<=t)last=v;const nx=V.find(v=>v.t>t);
+  if((!last||t-last.t>.42)&&(!nx||nx.t-t>.07)){V=V.filter(v=>!(v.t>t&&v.t<t+.42));V.push({t:t+.01,kind:'paced',org:'pacer'});V.sort((a,b)=>a.t-b.t)}else out.nocap.push({t,ch:'V',silent:true})}}
+ out.F=A.filter(a=>a.kind==='F').map(a=>a.t);out.P=A.filter(a=>a.kind!=='F').sort((a,b)=>a.t-b.t);out.V=V;
+ return out}
+
+/* geometry of the heart picture (canvas units, patient facing you: their left is your right) */
+const HG={SA:[118,86],AV:[192,160],HIS:[203,194],sept:[206,214],lowRA:[146,156],LA:[270,92],RAapp:[100,112],apex:[214,318],rv:[150,214],lv:[296,226],ap:[306,166],C:[210,196],TV:[150,128]};
+const MAT_O=[HG.SA,HG.lowRA,HG.LA,[128,96]];
+const LEADS={I:{a:0,pos:'LA',neg:'RA'},II:{a:60,pos:'LL',neg:'RA'},III:{a:120,pos:'LL',neg:'LA'},aVR:{a:-150,pos:'RA',neg:'mid'},aVL:{a:-30,pos:'LA',neg:'mid'},aVF:{a:90,pos:'LL',neg:'mid'}};
+
+/* every wave component is a dipole with a size and a direction (degrees: 0 = toward the patient's left, 90 = toward the feet) */
+function buildModel(out){
+ const C=[],Fr=[],L=out.lead,pS=L.p;
+ const add=(t,sig,amp,th,lab,kind,ev,role)=>C.push({t,sig,amp,th,lab,kind,ev,role});
+ out.P.forEach((p,i)=>{const t=p.t;let o=HG.SA,dur=.1;
+  switch(p.kind){
+   case 'sinus':add(t,.025,.19*pS,58,'P','sinus',i,'A');break;
+   case 'pac':add(t-.016,.017,.17*pS,15,'P','pac',i,'A');add(t+.022,.016,.17*pS,-125,'P','pac',i,'A');o=HG.LA;dur=.09;break;
+   case 'ectopic':add(t,.024,.21*pS,-85,'P','ectopic',i,'A');o=HG.lowRA;break;
+   case 'retro':add(t,.02,.18*pS,-95,'P','retro',i,'A');o=HG.AV;dur=.08;break;
+   case 'pacedA':add(t,.032,.19*pS,40,'P','pacedA',i,'A');o=HG.RAapp;break;
+   case 'mat':{const s=p.shape;o=MAT_O[s];if(s===0)add(t,.025,.19*pS,58,'P','mat',i,'A');else if(s===1)add(t,.023,.2*pS,-80,'P','mat',i,'A');else if(s===2){add(t-.017,.016,.16*pS,20,'P','mat',i,'A');add(t+.018,.016,.17*pS,-130,'P','mat',i,'A')}else add(t,.016,.3*pS,70,'P','mat',i,'A');break}}
+  Fr.push({reg:'A',o,start:t-dur/2-.005,dur,re0:t+.1,re1:t+.3,i})});
+ const V=out.V;
+ V.forEach((b,i)=>{const t=b.t;const rr=i>0?t-V[i-1].t:(i+1<V.length?V[i+1].t-t:.8);
+  const qt=Math.min(.44,Math.max(.26,.4*Math.sqrt(rr))),tT=t+Math.min(qt-.1,rr*.62);
+  const narrow=(k,s)=>{add(t-.026,.008,.2*s,170,'Q',k,i,'V');add(t,.011,1.3*s,55,'R',k,i,'V');add(t+.027,.009,.36*s,-115,'S',k,i,'V')};
+  let fr=[],re=[tT-.11,tT+.13];const pol=(b.pol||1)>0,fth=pol?72:-140,fo=pol?HG.rv:HG.lv;
+  switch(b.kind){
+   case 'narrow':case 'capture':{const k=b.kind==='capture'?'capture':b.org==='junction'?'junction':b.org==='reentry'?'reentry':'narrow';narrow(k,1);add(tT,.055,.34*L.t,45,'T',k,i,'T');fr=[{o:HG.sept,start:t-.045,dur:.085}];break}
+   case 'wide':case 'pvc':{const k=b.kind==='pvc'?'pvc':b.org==='vent'&&out.cfg.av==='chb'?'escapeV':'wide';add(t-.01,.032,1.15,fth,'R',k,i,'V');add(t+.06,.03,.45,fth+50,'S',k,i,'V');const tw=t+Math.min(.33,rr*.6);add(tw,.065,.42*L.t,fth+180,'T',k,i,'T');fr=[{o:fo,start:t-.08,dur:.17,focus:true}];re=[tw-.12,tw+.14];break}
+   case 'fusion':{narrow('fusion',.5);add(t+.005,.026,.55,fth,'R','fusion',i,'V');add(tT,.06,.14,pol?150:-50,'T','fusion',i,'T');fr=[{o:HG.sept,start:t-.045,dur:.09},{o:fo,start:t-.06,dur:.12,focus:true}];break}
+   case 'paced':{add(t+.045,.034,1.5,-65,'R','paced',i,'V');add(t+.11,.03,.4,20,'S','paced',i,'V');const tw=t+Math.min(.36,rr*.6);add(tw,.07,.42*L.t,110,'T','paced',i,'T');fr=[{o:HG.apex,start:t,dur:.17}];re=[tw-.13,tw+.15];break}
+   case 'delta':{add(t-.047,.022,.36,100,'Δ','delta',i,'V');add(t-.02,.017,.38,90,'Δ','delta',i,'V');add(t+.008,.013,1.1,55,'R','delta',i,'V');add(t+.038,.011,.25,-115,'S','delta',i,'V');add(tT+.02,.055,.22*L.t,20,'T','delta',i,'T');fr=[{o:HG.ap,start:t-.085,dur:.15},{o:HG.sept,start:t-.03,dur:.08}];break}
+   case 'deltaV':{const d=b.d,wv=b.wv;add(t-.04*wv,.022*wv,.5*d,100,'Δ','deltaV',i,'V');add(t,.016*wv,1.2,60,'R','deltaV',i,'V');add(t+.05*wv,.025*wv,.45*d,-100,'S','deltaV',i,'V');const tw=t+Math.min(.3,rr*.55);add(tw,.06,.25*d,-120,'T','deltaV',i,'T');fr=[{o:HG.ap,start:t-.08*wv,dur:.12*wv},{o:HG.sept,start:t-.02,dur:.08}];re=[tw-.1,tw+.12];break}}
+  for(const f of fr)Fr.push({reg:'V',o:f.o,start:f.start,dur:f.dur,re0:re[0],re1:re[1],focus:f.focus,i})});
+ out.comps=C;out.fronts=Fr;
+ const n=Math.round(out.dur*FS),vx=new Float32Array(n),vy=new Float32Array(n);
+ for(const c of C){const ca=Math.cos(c.th*deg)*c.amp,sa=Math.sin(c.th*deg)*c.amp;const i0=Math.max(0,Math.floor((c.t-4*c.sig)*FS)),i1=Math.min(n-1,Math.ceil((c.t+4*c.sig)*FS));
+  for(let i=i0;i<=i1;i++){const d=(i/FS-c.t)/c.sig,g=Math.exp(-.5*d*d);vx[i]+=ca*g;vy[i]+=sa*g}}
+ const B=out.base;
+ for(let i=0;i<n;i++){const t=i/FS;
+  if(B.flutter){const v=flutVec(B.flutter,t);vx[i]+=v[0];vy[i]+=v[1]}
+  if(B.fib){const f=B.fib,e=f.amp*(.75+.25*Math.sin(.7*t));vx[i]+=e*(Math.sin(2*Math.PI*f.f[0]*t+f.ph[0])+.6*Math.sin(2*Math.PI*f.f[2]*t+f.ph[2]));vy[i]+=e*(Math.sin(2*Math.PI*f.f[1]*t+f.ph[1])+.5*Math.sin(2*Math.PI*f.f[2]*1.1*t+f.ph[3]))}
+  if(B.vf){const f=B.vf,e=f.amp*(.45+.55*Math.abs(Math.sin(2*Math.PI*f.ef*t+f.eph)));vx[i]+=e*(Math.sin(2*Math.PI*f.f[0]*t+f.ph[0])+.4*Math.sin(2*Math.PI*f.f[2]*t+f.ph[2]));vy[i]+=e*(.9*Math.sin(2*Math.PI*f.f[1]*t+f.ph[1])+.5*Math.sin(2*Math.PI*f.f[0]*.8*t+f.ph[2]))}
+  vx[i]*=L.gain;vy[i]*=L.gain}
+ const rg=mkR(L.seed),wn=new Float32Array(n);for(let i=0;i<n;i++)wn[i]=L.wa*Math.sin(2*Math.PI*L.wf*i/FS+L.wph)+L.noise*rg.n();
+ out.vx=vx;out.vy=vy;out.wn=wn;out.leads={};return out}
+/* flutter: projection on lead II is a slow down-slope then a quick upstroke; a sideways component makes the vector swing round as the wave circles the valve */
+function flutVec(f,t){const x=((t/f.per)+f.ph)%1;const sw=x<.78?.45-1.45*(x/.78):-1+1.45*((x-.78)/.22);const w=.55*Math.sin(2*Math.PI*x);const a1=60*deg,a2=150*deg;return[f.amp*(sw*Math.cos(a1)+w*Math.cos(a2)),f.amp*(sw*Math.sin(a1)+w*Math.sin(a2))]}
+function leadY(out,L){if(out.leads[L])return out.leads[L];const a=LEADS[L].a*deg,c=Math.cos(a),s=Math.sin(a),n=out.vx.length,y=new Float32Array(n);for(let i=0;i<n;i++)y[i]=out.vx[i]*c+out.vy[i]*s+out.wn[i];return out.leads[L]=y}
+function make(cfg,seed,va){const out=buildModel(generate(cfg,seed,va));out.y=leadY(out,'II');out.key=classify(cfg);return out}
+function vbpm(out){const v=out.V.filter(b=>b.t>=0&&b.t<=out.dur).map(b=>b.t);if(v.length<2)return 0;return(v.length-1)/(v[v.length-1]-v[0])*60}
+
+/* systematic answer key */
+const STEPS=[
+ {id:'rate',q:'Rate',hint:'Count the QRS complexes in this 10-second strip and multiply by 6, or divide 300 by the big squares between two R waves.',opts:[['lt60','Under 60'],['60_100','60–100'],['100_150','101–150'],['gt150','Over 150'],['none','No organised QRS']]},
+ {id:'reg',q:'Rhythm',hint:'Put the calipers on one R–R interval and press March. Do the following beats land on the ticks?',opts:[['R','Regular'],['E','Regular with early beats'],['P','Irregular with a pattern'],['I','Irregularly irregular'],['C','Chaotic, no complexes']]},
+ {id:'atr',q:'Atrial activity',hint:'Look in front of every QRS and in the gaps. In lead II a normal P is upright, because the atrial wave heads toward its + electrode.',opts:[['a','Normal upright P waves'],['b','Abnormal P (inverted or odd)'],['c','Three or more P shapes'],['d','Sawtooth flutter waves'],['e','Fibrillatory baseline, no P'],['f','No visible P waves'],['g','Pacing spike before each P']]},
+ {id:'rel',q:'P to QRS',hint:'Does every P get a QRS? Measure one P–P interval and march it: do the P waves keep their own rhythm through the QRS complexes?',opts:[['a','1:1, every P conducts'],['b','PR lengthens, then a beat drops'],['c','Fixed PR, sudden dropped beat'],['d','Independent (dissociated)'],['e','Fixed ratio of atrial waves to QRS'],['f','No P waves to relate'],['g','Pacing spike before each QRS']]},
+ {id:'pr',q:'PR interval',hint:'From the start of the P to the start of the QRS. One small square is 40 ms; one big square is 200 ms.',opts:[['N','120–200 ms'],['L','Over 200 ms'],['S','Under 120 ms'],['V','Varies'],['X','Not measurable']]},
+ {id:'qrs',q:'QRS width',hint:'Narrow is under three small squares (120 ms). Check every complex.',opts:[['n','Narrow'],['w','Wide'],['m','Mixed: some wide beats'],['x','No QRS']]}];
+const TRUTH={nsr:{reg:'R',atr:'a',rel:'a',pr:'N',qrs:'n'},stach:{reg:'R',atr:'a',rel:'a',pr:'N',qrs:'n'},sbrady:{reg:'R',atr:'a',rel:'a',pr:'N',qrs:'n'},sarr:{reg:'P',atr:'a',rel:'a',pr:'N',qrs:'n'},
+ pac:{reg:'E',atr:'ab',rel:'a',pr:'N',qrs:'n'},ectopic:{reg:'R',atr:'b',rel:'a',pr:'NS',qrs:'n'},svt:{reg:'R',atr:'f',rel:'f',pr:'X',qrs:'n'},mat:{reg:'I',atr:'c',rel:'a',pr:'V',qrs:'n'},
+ flutter:{reg:'R',atr:'d',rel:'e',pr:'X',qrs:'n'},af:{reg:'I',atr:'e',rel:'f',pr:'X',qrs:'n'},avb1:{reg:'R',atr:'a',rel:'a',pr:'L',qrs:'n'},mobitz1:{reg:'P',atr:'a',rel:'b',pr:'V',qrs:'n'},
+ mobitz2:{reg:'P',atr:'a',rel:'c',pr:'N',qrs:'n'},chb:{reg:'R',atr:'a',rel:'d',pr:'V',qrs:'n'},junctional:{reg:'R',atr:'bf',rel:'fa',pr:'XS',qrs:'n'},pvc:{reg:'E',atr:'a',rel:'a',pr:'N',qrs:'m'},
+ vt:{reg:'R',atr:'af',rel:'df',pr:'XV',qrs:'w'},vf:{reg:'C',atr:'fe',rel:'f',pr:'X',qrs:'x'},pace_a:{reg:'R',atr:'g',rel:'a',pr:'N',qrs:'n'},pace_v:{reg:'R',atr:'ef',rel:'g',pr:'X',qrs:'w'},
+ pace_dual:{reg:'R',atr:'g',rel:'g',pr:'N',qrs:'w'},pace_fcap:{reg:'PI',atr:'ef',rel:'g',pr:'X',qrs:'w'},pace_fsense:{reg:'IE',atr:'a',rel:'ag',pr:'N',qrs:'m'},wpw:{reg:'R',atr:'a',rel:'a',pr:'S',qrs:'w'},af_wpw:{reg:'I',atr:'ef',rel:'f',pr:'X',qrs:'w'}};
+function truthFor(out){const k=out.key,c=out.cfg,T={...TRUTH[k]};
+ if(k==='chb')T.qrs=c.escape==='junctional'?'n':'w';
+ if(k==='flutter'&&c.flutterRatio==='var')T.reg='PI';
+ if(k==='junctional'){T.atr=c.junctP==='none'?'f':'bf';T.rel=c.junctP==='before'?'af':'f';T.pr=c.junctP==='before'?'SX':'X'}
+ if(k==='vt'&&!out.V.some(v=>v.kind==='capture'||v.kind==='fusion'))T.qrs='w';
+ if(k==='vf')T.rate='none';else{const b=vbpm(out),s=new Set(),band=x=>x<60?'lt60':x<=100?'60_100':x<=150?'100_150':'gt150';[b,b-5,b+5].forEach(x=>s.add(band(x)));T.rate=[...s].join('|')}
+ return T}
+function accepts(T,id,v){return id==='rate'?T.rate.split('|').includes(v):T[id].includes(v)}
+
+/* what is happening at time t, in words */
+function towardWords(th,L){const p=Math.cos((th-LEADS[L].a)*deg);if(Math.abs(p)<.3)return{d:'almost side-on to',pen:'barely moves',p};return p>0?{d:'toward',pen:'goes up',p}:{d:'away from',pen:'goes down',p}}
+function dominant(out,t){let best=null,bw=.045;for(const c of out.comps){const d=(t-c.t)/c.sig;if(Math.abs(d)>2.4)continue;const w=c.amp*(c.lab==='P'?1.6:1)*Math.exp(-.5*d*d);if(w>bw){bw=w;best=c}}return best}
+const PTITLE={sinus:'P wave: the atria depolarise',pac:'Early P wave from an ectopic atrial focus',ectopic:'P wave from a low atrial focus',retro:'Retrograde P: the atria fire backwards',pacedA:'Paced P wave',mat:'P wave from one of several foci'};
+const PBODY={sinus:'The SA node has fired and the wave spreads through both atria, down and to the left.',pac:'This impulse started early, in the left atrium. It spreads across the atria by a different route, so the P is a different shape.',ectopic:'The impulse started low in the right atrium, so the wave climbs upward through the atria.',retro:'The impulse started in the AV junction and travels back up into the atria.',pacedA:'The wave starts at the atrial lead tip and spreads across both atria.',mat:'This beat started from one of several irritable spots, so its wave takes its own route.'};
+function caption(out,t,L){
+ const cfg=out.cfg,lw=th=>{const w=towardWords(th,L);return`The wave is heading ${w.d} lead ${L}’s + electrode, so the pen ${w.pen}.`};
+ for(const s of out.S)if(t>=s.t-.006&&t<s.t+.025){const nc=out.nocap.some(x=>Math.abs(x.t-s.t)<.001);return{title:'Pacemaker spike',body:nc?'The device discharges, but the tissue at the lead tip does not respond. No wave starts, so nothing follows this spike.':'The pacemaker discharges a tiny, very fast pulse at the lead tip. That draws the thin vertical spike.'}}
+ if(out.base.vf)return{title:'Ventricular fibrillation',body:'There is no organised wave. Hundreds of wavelets head in random directions, so the arrow swings about and the line is chaotic. Nothing is pumping.'};
+ const c=dominant(out,t);
+ if(c){const k=c.kind;
+  if(c.lab==='P')return{title:PTITLE[k],body:PBODY[k]+' '+lw(c.th)};
+  if(c.role==='T'){const ab=['wide','pvc','escapeV','paced','deltaV','fusion'].includes(k);return{title:ab?'T wave: abnormal recovery':'T wave: the ventricles recover',body:(ab?'The ventricles were activated the slow, abnormal way, so they recover in that order too. The recovery wave points opposite to the QRS. ':'Recovery runs from the outer wall inward, the reverse of activation. A reversed wave moving the reverse way draws in the same direction as the QRS. ')+lw(c.th)}}
+  if(c.lab==='Δ')return{title:'Delta wave: pre-excitation',body:'The accessory pathway skipped the AV-node pause. Ventricular muscle near the pathway starts depolarising early, cell to cell and slowly, which slurs the start of the QRS. '+lw(c.th)};
+  if(k==='pvc'||k==='wide'||k==='escapeV')return{title:k==='pvc'?'Premature ventricular beat':k==='escapeV'?'Ventricular escape beat':'Ventricular tachycardia beat',body:'This beat starts in ventricular muscle, not the bundles. It crawls cell to cell, taking about twice as long, so the QRS is wide. It spreads outward from the focus, which sets its direction. '+lw(c.th)};
+  if(k==='paced')return{title:'Paced ventricular beat',body:'The wave starts at the lead tip in the right ventricular apex and climbs up and to the left, cell to cell. Slow spread makes it wide. '+lw(c.th)};
+  if(k==='fusion')return{title:'Fusion beat',body:'A sinus impulse and the ventricular focus fire at nearly the same moment. Their waves meet in the middle, giving a hybrid QRS. '+lw(c.th)};
+  if(k==='deltaV')return{title:'Pre-excited AF beat',body:'An AF impulse races down the accessory pathway. How much of the ventricle it pre-excites varies beat to beat, so the width varies. '+lw(c.th)};
+  const pre=k==='capture'?'Capture beat. A sinus impulse slips through and activates the ventricles normally. ':k==='junction'?'This beat started in the AV junction, then used the normal bundles. ':k==='reentry'?'The AV-node circuit fires down the normal bundles. ':'';
+  if(c.lab==='Q')return{title:'Q wave: the septum goes first',body:pre+'The septum depolarises from left to right, a small wave heading toward the patient’s right. '+lw(c.th)};
+  if(c.lab==='R')return{title:'R wave: the ventricles depolarise',body:pre+'The bundles deliver the impulse everywhere at once, and the big muscle mass depolarises toward the apex. This is the largest wave of the beat. '+lw(c.th)};
+  if(c.lab==='S')return{title:'S wave: the base finishes last',body:pre+'The last muscle to depolarise is up at the base of the heart, so the wave heads up and to the right. '+lw(c.th)}}
+ if(out.base.flutter){const v=flutVec(out.base.flutter,t),th=Math.atan2(v[1],v[0])/deg;return{title:'Flutter wave circling the atrium',body:'One wave chases its tail around the tricuspid valve, so the atria are never quiet and there is no flat baseline. '+lw(th)}}
+ for(const v of out.V)if(v.aT!==undefined&&t>v.aT+.04&&t<v.t-.04&&!v.acc){const ex=cfg.av==='first'?' Here the pause is abnormally long: first-degree block.':cfg.av==='wenck'?' Each beat this pause is longer than the last.':'';return{title:'PR segment: the AV node pause',body:'The impulse is crawling through the AV node and His bundle. They are too small to register on the skin, so the line stays flat.'+ex}}
+ if(cfg.pacer==='DDD'&&cfg.pacerFault!=='sense')for(const p of out.P)if(t>p.t+.04&&t<p.t+.12)return{title:'Programmed AV delay',body:'The device waits a set time, like a normal PR interval, then fires the ventricular lead.'};
+ for(const p of out.P){if(p.kind==='retro'||t<p.t+.05||t>p.t+.42)continue;if(out.V.some(v=>v.aT===p.t))continue;
+  const m=cfg.av==='wenck'?{title:'Dropped beat: the AV node gives out',body:'The AV node has been tiring with every beat. This impulse cannot get through, so no wave reaches the ventricles and there is no QRS. The node recovers during the pause.'}:
+   cfg.av==='mobitz2'?{title:'Dropped beat below the AV node',body:'The impulse passes the AV node but fails in the His–Purkinje system, with no warning. A P wave with no QRS.'}:
+   cfg.av==='chb'?{title:'Blocked: nothing crosses',body:'The atria fire, but the impulse stops at the AV node. The ventricles follow their own escape pacemaker instead.'}:
+   cfg.vent==='vt'?{title:'Atria on their own',body:'The atria still follow the SA node. The ventricles are busy with the VT circuit, so these P waves are usually buried.'}:
+   cfg.vent==='pvc'?{title:'Sinus P lands in the PVC',body:'The SA node fired on time, but the ventricles are still recovering from the PVC. This impulse goes nowhere, which is why the pause is fully compensatory.'}:
+   cfg.pacerFault==='sense'?{title:'Sinus beat pre-empted',body:'The atria fired normally, but the pacemaker, blind to the heart\u2019s own rhythm, had just fired the ventricles. They are still refractory, so this impulse goes nowhere.'}:cfg.pacer==='V'?{title:'Atria and pacemaker not linked',body:'The atria fire on their own. The ventricles are driven by the pacemaker.'}:null;
+  if(m)return m}
+ if(out.base.fib)return{title:'Fibrillating atria',body:'Hundreds of tiny wavelets head in every direction and mostly cancel out, so the arrow only wobbles. No single wave forms a P.'};
+ return{title:'Baseline: electrically quiet',body:'Every cell is resting and ready. Nothing is moving, so there is nothing for the electrodes to see and the line is flat.'}}
+/*UI*/
+const $=s=>document.querySelector(s);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const STORE='spark-to-strip-v1';
+let st=(()=>{try{const s=JSON.parse(localStorage.getItem(STORE));if(s&&s.drill)return s}catch(e){}return null})()||{drill:{},conf:{},sys:{},groups:Object.keys(GROUPS),sysMode:'adaptive',flash:false};
+function save(){try{localStorage.setItem(STORE,JSON.stringify(st))}catch(e){}}
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const median=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y);return s[Math.floor(s.length/2)]};
+
+/* strips */
+function sizeCanvas(cv,W,H){const dpr=window.devicePixelRatio||1;if(cv._w!==W||cv._h!==H||cv._d!==dpr){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);cv.style.width=W+'px';cv.style.height=H+'px';cv._w=W;cv._h=H;cv._d=dpr}const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return ctx}
+function geom(cv,hmm){const cw=Math.max(cv.parentElement.clientWidth-2,280);const ppm=Math.max(2.6,cw/(DUR*25));return{ppm,W:Math.floor(DUR*25*ppm),H:Math.round(hmm*ppm),top:hmm===40?2.2:1.8}}
+function paintGrid(ctx,G){ctx.fillStyle=css('--strip-bg');ctx.fillRect(0,0,G.W,G.H);const mn=css('--strip-minor'),mj=css('--strip-major');
+ for(let pass=0;pass<2;pass++){ctx.strokeStyle=pass?mj:mn;ctx.lineWidth=pass?1:.7;ctx.beginPath();
+  for(let mm=0;mm*G.ppm<=G.W;mm++){if((mm%5===0)!==!!pass)continue;const x=Math.round(mm*G.ppm)+.5;ctx.moveTo(x,0);ctx.lineTo(x,G.H)}
+  for(let mm=0;mm*G.ppm<=G.H;mm++){if((mm%5===0)!==!!pass)continue;const y=Math.round(mm*G.ppm)+.5;ctx.moveTo(0,y);ctx.lineTo(G.W,y)}ctx.stroke()}}
+function paintTrace(ctx,G,out,y,upto){const k=25*G.ppm/FS,s=10*G.ppm,end=upto==null?y.length:Math.min(y.length,Math.floor(upto*FS));ctx.strokeStyle=css('--strip-ink');ctx.lineWidth=Math.max(1.3,G.ppm*.4);ctx.lineJoin='round';ctx.beginPath();
+ for(let i=0;i<end;i++){const X=i*k,Y=(G.top-y[i])*s;i?ctx.lineTo(X,Y):ctx.moveTo(X,Y)}ctx.stroke();
+ ctx.lineWidth=Math.max(1,G.ppm*.32);ctx.beginPath();for(const sp of out.S){if(upto!=null&&sp.t>upto)continue;const i=Math.round(sp.t*FS);if(i<0||i>=y.length)continue;const X=sp.t*25*G.ppm,Y=(G.top-y[i])*s;ctx.moveTo(X,Y+2);ctx.lineTo(X,Y-1.4*s)}ctx.stroke();
+ return end}
+function drawStatic(cv,out,extra){const G=geom(cv,30);const ctx=sizeCanvas(cv,G.W,G.H);paintGrid(ctx,G);paintTrace(ctx,G,out,out.y);cv._G=G;if(extra)extra(ctx,G);return G}
+
+/* ===== LEARN ===== */
+const SPEEDS=[['1','Real time'],['0.25','¼ speed'],['0.1','1/10 speed']];
+let lk='nsr',lout=null,lt=0,lspeed=.25,lplay=!reduce,lLead='II',lraf=0,llast=0,lRuns=[],lCapKey='';
+const RA_P=new Path2D('M98,118 C92,84 112,66 146,68 C182,70 200,92 198,124 C196,150 176,166 148,166 C118,166 102,150 98,118Z');
+const LA_P=new Path2D('M210,112 C208,86 228,70 262,72 C294,74 312,92 308,118 C304,142 284,154 258,152 C230,150 212,136 210,112Z');
+const AT_P=new Path2D();AT_P.addPath(RA_P);AT_P.addPath(LA_P);
+const V_P=new Path2D('M112,182 C108,166 126,170 150,172 L282,168 C306,166 322,180 318,206 C310,260 280,304 240,340 C206,322 160,290 134,252 C120,230 114,206 112,182Z');
+const HIS_PTS=[HG.AV,HG.HIS];const LBB=[HG.HIS,[236,222],[268,250],[284,282]];const RBB=[HG.HIS,[192,236],[196,280],[214,318]];
+function along(pts,f){const seg=[];let tot=0;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(d);tot+=d}let r=Math.max(0,Math.min(1,f))*tot;for(let i=0;i<seg.length;i++){if(r<=seg[i]){const k=seg[i]?r/seg[i]:0;return[pts[i][0]+(pts[i+1][0]-pts[i][0])*k,pts[i][1]+(pts[i+1][1]-pts[i][1])*k]}r-=seg[i]}return pts[pts.length-1]}
+function poly(ctx,pts){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.stroke()}
+function dot(ctx,p,r,c){ctx.fillStyle=c;ctx.beginPath();ctx.arc(p[0],p[1],r,0,7);ctx.fill()}
+function arrow(ctx,x0,y0,x1,y1,c,w){const a=Math.atan2(y1-y0,x1-x0),h=Math.min(14,Math.hypot(x1-x0,y1-y0)*.5);ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1-Math.cos(a)*h*.6,y1-Math.sin(a)*h*.6);ctx.stroke();ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x1-Math.cos(a-.42)*h,y1-Math.sin(a-.42)*h);ctx.lineTo(x1-Math.cos(a+.42)*h,y1-Math.sin(a+.42)*h);ctx.closePath();ctx.fill()}
+function rgba(hex,a){if(hex.startsWith('rgb'))return hex.replace(/rgba?\(([^)]+)\)/,(m,v)=>{const p=v.split(',').slice(0,3);return`rgba(${p.join(',')},${a})`});const h=hex.replace('#','');const n=parseInt(h.length===3?h.split('').map(x=>x+x).join(''):h,16);return`rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function drawHeart(t){const cv=$('#cv-heart'),W=430,H=440;const ctx=sizeCanvas(cv,W,H);cv.style.width='';cv.style.height='';
+ const ink=css('--ink'),mut=css('--muted'),tr=css('--trace'),sc=css('--scrubs'),out=lout,cfg=out.cfg;
+ ctx.fillStyle=css('--strip-bg');ctx.fillRect(0,0,W,H);
+ // electrodes
+ const EL={RA:[34,34],LA:[396,34],LL:[262,414]},ld=LEADS[lLead];
+ for(const [k,p] of Object.entries(EL)){const isP=ld.pos===k,isN=ld.neg===k||(ld.neg==='mid'&&!isP);ctx.fillStyle=isP?tr:isN?ink:css('--line');ctx.beginPath();ctx.arc(p[0],p[1],15,0,7);ctx.fill();
+  ctx.fillStyle=isP||isN?css('--strip-bg'):mut;ctx.font='700 11px Figtree,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(k,p[0],p[1]);
+  const nm={RA:'right arm',LA:'left arm',LL:'left leg'}[k]+(isP?' (+)':isN?' (−)':'');ctx.font='600 12px Figtree,sans-serif';ctx.fillStyle=isP?tr:isN?ink:mut;ctx.textAlign=k==='LA'?'right':'left';ctx.fillText(nm,p[0]+(k==='LA'?-22:22),p[1]+1)}
+ ctx.save();ctx.translate(215,224);ctx.scale(1.12,1.12);ctx.translate(-207,-203);
+ // tissue
+ ctx.lineWidth=1.4;ctx.strokeStyle=css('--tissue-line');ctx.fillStyle=css('--tissue-a');ctx.fill(RA_P);ctx.fill(LA_P);ctx.stroke(RA_P);ctx.stroke(LA_P);ctx.fillStyle=css('--tissue-v');ctx.fill(V_P);ctx.stroke(V_P);
+ ctx.fillStyle=mut;ctx.font='600 12px Figtree,sans-serif';ctx.textAlign='center';ctx.fillText('RA',132,112);ctx.fillText('LA',262,110);ctx.fillText('RV',160,262);ctx.fillText('LV',272,214);
+ // activation
+ for(const f of out.fronts){if(t<f.start||t>f.re1+.02)continue;const reg=f.reg==='A'?AT_P:V_P;const prog=Math.min(1,(t-f.start)/f.dur);const R=prog*260;
+  let col=tr,al=.5;if(t>f.re0){const k=Math.min(1,(t-f.re0)/(f.re1-f.re0));col=sc;al=.5*(1-k)}
+  ctx.save();ctx.clip(reg);ctx.fillStyle=rgba(col,al);ctx.beginPath();ctx.arc(f.o[0],f.o[1],R,0,7);ctx.fill();
+  if(prog<1){ctx.strokeStyle=rgba(tr,.95);ctx.lineWidth=3;ctx.beginPath();ctx.arc(f.o[0],f.o[1],R,0,7);ctx.stroke()}ctx.restore();
+  if((f.focus||f.o===HG.LA||f.o===HG.lowRA||f.o===HG.ap||MAT_O.includes(f.o)&&f.o!==HG.SA)&&t<f.start+f.dur){star(ctx,f.o,7,css('--warn'))}}
+ if(out.base.fib&&!reduce){ctx.save();ctx.clip(AT_P);ctx.strokeStyle=rgba(tr,.7);ctx.lineWidth=2;for(let k=0;k<16;k++){const x=100+Math.random()*210,y=72+Math.random()*90,a=Math.random()*6.3;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*12,y+Math.sin(a)*12);ctx.stroke()}ctx.restore()}
+ if(out.base.vf&&!reduce){ctx.save();ctx.clip(V_P);ctx.strokeStyle=rgba(tr,.75);ctx.lineWidth=2.4;for(let k=0;k<26;k++){const x=115+Math.random()*200,y=175+Math.random()*160,a=Math.random()*6.3;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*16,y+Math.sin(a)*16);ctx.stroke()}ctx.restore()}
+ if(out.base.flutter){const f=out.base.flutter,x=((t/f.per)+f.ph)%1,a=-Math.PI/2+x*2*Math.PI;ctx.strokeStyle=rgba(tr,.6);ctx.setLineDash([4,4]);ctx.lineWidth=2;ctx.beginPath();ctx.arc(HG.TV[0],HG.TV[1],24,0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.save();ctx.clip(RA_P);ctx.fillStyle=rgba(tr,.35);ctx.beginPath();ctx.moveTo(HG.TV[0],HG.TV[1]);ctx.arc(HG.TV[0],HG.TV[1],60,a-1.2,a);ctx.fill();ctx.restore();dot(ctx,[HG.TV[0]+Math.cos(a)*24,HG.TV[1]+Math.sin(a)*24],6,tr)}
+ // conduction system
+ const wire=css('--wire');ctx.strokeStyle=rgba(wire.startsWith('#')?wire:'#1D2340',.55);ctx.lineWidth=2.4;ctx.lineCap='round';poly(ctx,HIS_PTS);poly(ctx,LBB);poly(ctx,RBB);
+ dot(ctx,HG.SA,7,cfg.saOn&&(cfg.atria==='sinus'||cfg.atria==='ectopic')&&cfg.pacer!=='A'&&cfg.pacer!=='DDD'?sc:mut);dot(ctx,HG.AV,6.5,sc);
+ ctx.fillStyle=mut;ctx.font='600 11px Figtree,sans-serif';ctx.textAlign='left';ctx.textAlign='right';ctx.fillText('SA node',HG.SA[0]-12,HG.SA[1]-10);ctx.textAlign='left';ctx.fillText('AV node',HG.AV[0]+12,HG.AV[1]-2);
+ if(cfg.accessory){ctx.strokeStyle=css('--warn');ctx.lineWidth=4;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(300,146);ctx.lineTo(310,178);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=css('--warn');ctx.fillText('pathway',316,160)}
+ if(cfg.pacer!=='none'){ctx.strokeStyle=mut;ctx.lineWidth=1.6;if(cfg.pacer!=='V'){ctx.beginPath();ctx.moveTo(420,120);ctx.bezierCurveTo(340,60,180,40,HG.RAapp[0],HG.RAapp[1]);ctx.stroke()}if(cfg.pacer!=='A'){ctx.beginPath();ctx.moveTo(420,130);ctx.bezierCurveTo(330,150,190,200,HG.apex[0],HG.apex[1]);ctx.stroke()}
+  for(const s of out.S)if(t>=s.t&&t<s.t+.06){const p=s.ch==='A'?HG.RAapp:HG.apex;dot(ctx,p,10,rgba(css('--warn'),.9))}}
+ // impulse travelling through AV node / bundles
+ for(const v of out.V){if(v.aT!==undefined&&!v.acc){const a0=v.aT+.04,a1=v.t-.045;if(t>=a0&&t<a1)dot(ctx,along(HIS_PTS,(t-a0)/(a1-a0)),5.5,tr);if(t>=a1&&t<v.t){const f=(t-a1)/.045;dot(ctx,along(LBB,f),5,tr);dot(ctx,along(RBB,f),5,tr)}}
+  else if(v.org==='junction'||v.org==='reentry'){const a1=v.t-.045;if(t>=a1-.03&&t<a1)dot(ctx,HG.AV,8,tr);if(t>=a1&&t<v.t){const f=(t-a1)/.045;dot(ctx,along(LBB,f),5,tr);dot(ctx,along(RBB,f),5,tr)}}
+  else if(v.acc&&v.aT!==undefined){if(t>=v.aT&&t<v.t-.06)dot(ctx,[305,162],7,css('--warn'))}}
+ for(const p of out.P){if(p.kind==='retro'||out.V.some(v=>v.aT===p.t))continue;if(cfg.vent==='pvc'||cfg.pacer==='V'||cfg.pacerFault==='sense'||cfg.vent==='vt'||cfg.av==='chb'||cfg.av==='wenck'||cfg.av==='mobitz2'){
+  const a0=p.t+.04,stop=cfg.av==='mobitz2'?HG.HIS:HG.AV;if(t>=a0&&t<p.t+.42){if(cfg.av==='mobitz2'&&t<p.t+.12)dot(ctx,along(HIS_PTS,(t-a0)/.08),5.5,tr);const s=stop;ctx.strokeStyle=tr;ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(s[0]-9,s[1]-9);ctx.lineTo(s[0]+9,s[1]+9);ctx.moveTo(s[0]+9,s[1]-9);ctx.lineTo(s[0]-9,s[1]+9);ctx.stroke()}}}
+ // the vector and the lead
+ const i=Math.max(0,Math.min(out.vx.length-1,Math.floor(t*FS))),vx=out.vx[i],vy=out.vy[i],S=82,[cx,cy]=HG.C,a=ld.a*deg,u=[Math.cos(a),Math.sin(a)],Lh=168;
+ ctx.strokeStyle=rgba(mut.startsWith('#')?mut:'#5E6380',.7);ctx.lineWidth=1.5;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(cx-u[0]*Lh,cy-u[1]*Lh);ctx.lineTo(cx+u[0]*Lh,cy+u[1]*Lh);ctx.stroke();ctx.setLineDash([]);
+ ctx.font='700 15px Figtree,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=tr;ctx.fillText('+',cx+u[0]*(Lh+12),cy+u[1]*(Lh+12));ctx.fillStyle=ink;ctx.fillText('−',cx-u[0]*(Lh+12),cy-u[1]*(Lh+12));
+ ctx.font='600 12px Figtree,sans-serif';ctx.fillStyle=mut;ctx.fillText('lead '+lLead,cx+u[0]*(Lh-18)+u[1]*14,cy+u[1]*(Lh-18)-u[0]*14);
+ const p0=vx*u[0]+vy*u[1],mag=Math.hypot(vx,vy),K=mag>1e-4?(105/(mag+.35))/S:1,p=p0;/* small atrial vectors drawn larger so they can be seen; projection uses the same scale */
+ if(Math.abs(p)>.01){ctx.strokeStyle=rgba(p>0?tr:sc,.85);ctx.lineWidth=8;ctx.lineCap='butt';ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+u[0]*p*S*K,cy+u[1]*p*S*K);ctx.stroke();ctx.lineCap='round'}
+ if(mag>.03){const tx=cx+vx*S*K,ty=cy+vy*S*K;ctx.strokeStyle=rgba(mut.startsWith('#')?mut:'#5E6380',.8);ctx.lineWidth=1.2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(cx+u[0]*p*S*K,cy+u[1]*p*S*K);ctx.stroke();ctx.setLineDash([]);arrow(ctx,cx,cy,tx,ty,ink,3.2)}
+ ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.font='700 13px Figtree,sans-serif';ctx.fillStyle=Math.abs(p)<.03?mut:p>0?tr:sc;ctx.fillText(Math.abs(p)<.03?'pen at baseline':p>0?`pen up ${p.toFixed(2)} mV`:`pen down ${(-p).toFixed(2)} mV`,16,380)}
+function star(ctx,p,r,c){ctx.fillStyle=c;ctx.beginPath();for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,rr=k%2?r*.45:r;ctx.lineTo(p[0]+Math.cos(a)*rr,p[1]+Math.sin(a)*rr)}ctx.closePath();ctx.fill()}
+let lGrid=null;
+function drawLearnStrip(t){const cv=$('#cv-learn');const G=geom(cv,30);const ctx=sizeCanvas(cv,G.W,G.H);
+ if(!lGrid||lGrid._w!==G.W||lGrid._d!==(window.devicePixelRatio||1)||lGrid._theme!==css('--strip-bg')){const dpr=window.devicePixelRatio||1;lGrid=document.createElement('canvas');lGrid.width=Math.round(G.W*dpr);lGrid.height=Math.round(G.H*dpr);const c=lGrid.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);paintGrid(c,G);lGrid._w=G.W;lGrid._d=dpr;lGrid._theme=css('--strip-bg')}
+ ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(lGrid,0,0);const dpr=window.devicePixelRatio||1;ctx.setTransform(dpr,0,0,dpr,0,0);
+ const y=leadY(lout,lLead);const end=paintTrace(ctx,G,lout,y,t);
+ // wave labels
+ ctx.font='600 12px Figtree,sans-serif';ctx.textAlign='center';ctx.fillStyle=css('--trace');const a=LEADS[lLead].a;let lastX=-99;
+ for(const c of lout.comps){if(c.t>t)continue;if(c.lab==='P'&&c.kind==='pac'&&c.th<0)continue;const pr=c.amp*Math.cos((c.th-a)*deg);if(Math.abs(pr)<.1&&c.lab!=='P')continue;if(Math.abs(pr)<.05)continue;const X=c.t*25*G.ppm;if(X-lastX<10)continue;lastX=X;const i=Math.min(y.length-1,Math.round(c.t*FS));const Y=(G.top-y[i])*10*G.ppm;ctx.fillText(c.lab,X,pr>0?Y-9:Y+13)}
+ if(end>0&&end<y.length){const X=end/FS*25*G.ppm,Y=(G.top-y[end-1])*10*G.ppm;dot(ctx,[X,Y],4,css('--trace'));const w=cv.parentElement;if(w.scrollWidth>w.clientWidth+4){const want=Math.max(0,X-w.clientWidth*.6);if(Math.abs(w.scrollLeft-want)>w.clientWidth*.3||X<w.scrollLeft)w.scrollLeft=want}}}
+function computeRuns(){const runs=[];let cur=null;for(let t=0;t<DUR;t+=.004){const k=caption(lout,t,'II').title;if(!cur||cur.k!==k){if(cur)cur.e=t;cur={k,s:t};runs.push(cur)}}cur.e=DUR;lRuns=runs.map(r=>({...r,m:(r.s+r.e)/2}))}
+function updateCaption(){const c=caption(lout,lt,lLead);const key=c.title+'|'+c.body;if(key!==lCapKey){lCapKey=key;$('#cap-title').textContent=c.title;$('#cap-body').textContent=c.body}
+ $('#l-time').textContent=`${lt.toFixed(2)} s of 10`}
+function learnFrame(){drawHeart(lt);drawLearnStrip(lt);updateCaption()}
+function learnTick(now){if(curMode!=='learn'){lraf=0;return}const dt=Math.min(.05,(now-llast)/1000);llast=now;if(lplay){lt+=dt*lspeed;if(lt>=DUR)lt=0}learnFrame();lraf=requestAnimationFrame(learnTick)}
+function startLearn(){if(!lraf){llast=performance.now();lraf=requestAnimationFrame(learnTick)}}
+function loadRhythm(k){lk=k;const cfg=preset(k,mkR(k==='nsr'?5:12));if(k==='mobitz1')cfg.saRate=80;if(k==='chb'){cfg.escape='junctional';cfg.escRate=42}if(k==='vt')cfg.vtCap=true;lout=make(cfg,2024,0);lout.wn.fill(0);lout.leads={};lout.y=leadY(lout,'II');lt=0;lCapKey='';computeRuns();
+ const r=RHY[k];$('#cap-when').textContent=r.n;$('#r-name').textContent=r.n;$('#r-mech').textContent=r.mech;$('#r-wave').textContent=r.wave;$('#r-look').innerHTML=r.look.map(x=>`<li>${x}</li>`).join('');
+ document.querySelectorAll('#l-rhythms .chip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===k)));learnFrame()}
+function stepTo(dir){lplay=false;$('#l-play').textContent='Play';const cur=lRuns.findIndex(r=>lt>=r.s&&lt<r.e);let j=cur+dir;if(j<0)j=lRuns.length-1;if(j>=lRuns.length)j=0;lt=lRuns[j].m;learnFrame()}
+function renderLearnControls(){
+ const sp=$('#l-speed');sp.innerHTML='';SPEEDS.forEach(([v,l])=>{const b=document.createElement('button');b.className='chip';b.textContent=l;b.setAttribute('aria-pressed',String(+v===lspeed));b.onclick=()=>{lspeed=+v;renderLearnControls()};sp.appendChild(b)});
+ const le=$('#l-leads');le.innerHTML='';Object.keys(LEADS).forEach(L=>{const b=document.createElement('button');b.className='chip';b.textContent=L;b.setAttribute('aria-pressed',String(L===lLead));b.onclick=()=>{lLead=L;lCapKey='';$('#l-strip-label').textContent='Lead '+L+(L==='II'?' · the rhythm strip lead':'');$('#cap-lead').textContent=L==='II'?'':'Rhythm strips use lead II. You are looking from lead '+L+', so some waves flip or shrink.';renderLearnControls();learnFrame()};le.appendChild(b)})}
+function renderRhythmPicker(sel,onPick){const box=$(sel);box.innerHTML='';for(const g in GROUPS){const row=document.createElement('div');row.className='pgroup';row.innerHTML=`<span class="g">(${g}) ${GROUPS[g]}</span>`;const c=document.createElement('div');c.className='chips';
+ for(const k of KEYS.filter(k=>RHY[k].g===g)){const b=document.createElement('button');b.className='chip';b.dataset.k=k;b.textContent=RHY[k].n;b.onclick=()=>onPick(k,b);c.appendChild(b)}row.appendChild(c);box.appendChild(row)}}
+$('#l-play').onclick=()=>{lplay=!lplay;$('#l-play').textContent=lplay?'Pause':'Play'};
+$('#l-next').onclick=()=>stepTo(1);$('#l-back').onclick=()=>stepTo(-1);
+document.addEventListener('keydown',e=>{if(curMode!=='learn'||e.target.tagName==='INPUT')return;if(e.key==='ArrowRight'){e.preventDefault();stepTo(1)}if(e.key==='ArrowLeft'){e.preventDefault();stepTo(-1)}});
+
+/* ===== shared ===== */
+function pool(){const p=KEYS.filter(k=>st.groups.includes(RHY[k].g));return p.length?p:KEYS}
+function renderFilters(){for(const sel of ['#d-filters','#y-filters']){const box=$(sel);box.innerHTML='';for(const g in GROUPS){const b=document.createElement('button');b.className='chip';b.textContent=`(${g}) ${GROUPS[g]}`;b.setAttribute('aria-pressed',String(st.groups.includes(g)));
+ b.onclick=()=>{const on=st.groups.includes(g);if(on&&st.groups.length===1)return;st.groups=on?st.groups.filter(x=>x!==g):[...st.groups,g];save();renderFilters()};box.appendChild(b)}}}
+function dstat(k){return st.drill[k]||(st.drill[k]={seen:0,correct:0,recent:[],times:[]})}
+function weightedPick(keys,wf,last){const w=keys.map(k=>k===last&&keys.length>1?0:wf(k));const tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot;for(let i=0;i<keys.length;i++){r-=w[i];if(r<=0)return keys[i]}return keys[keys.length-1]}
+const confWeight=k=>Object.entries(st.conf).filter(([p])=>p.startsWith(k+'>')).reduce((a,[,n])=>a+n*.5,0);
+const newSeed=()=>(Math.random()*1e9)|0;
+
+/* ===== DRILL ===== */
+let dcur=null,dstart=0,dtimer=0,dlast=null,dn=0;
+function drillWeight(k){const s=dstat(k);const errs=s.recent.filter(x=>!x).length;const slow=s.times.length?Math.max(0,Math.min(2,(median(s.times)-4)/4)):0;return 1+errs*1.6+(s.seen<3?1.5:0)+slow+confWeight(k)}
+function nextDrill(){const P=pool();const key=weightedPick(P,drillWeight,dlast);dlast=key;const sd=newSeed();const out=make(preset(key,mkR(sd)),sd+1,1);
+ const opts=[key];const add=k=>{if(P.includes(k)&&!opts.includes(k)&&opts.length<6)opts.push(k)};
+ Object.entries(st.conf).filter(([p])=>p.startsWith(key+'>')).sort((a,b)=>b[1]-a[1]).forEach(([p])=>add(p.split('>')[1]));(CONFUSE[key]||[]).forEach(add);
+ let g=0;while(opts.length<Math.min(6,P.length)&&g++<200)add(P[Math.floor(Math.random()*P.length)]);
+ for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}
+ dcur={key,out,opts,answered:false};dn++;$('#d-count').textContent=`Strip ${dn} · lead II`;$('#d-feedback').innerHTML='';$('#d-cover').hidden=true;drawStatic($('#cv-drill'),out);
+ const box=$('#d-answers');box.innerHTML='';opts.forEach((k,i)=>{const b=document.createElement('button');b.className='chip';b.dataset.k=k;b.innerHTML=`<kbd>${i+1}</kbd>${RHY[k].n}`;b.onclick=()=>answerDrill(k);box.appendChild(b)});
+ dstart=performance.now();clearInterval(dtimer);dtimer=setInterval(()=>{const s=(performance.now()-dstart)/1000;$('#d-timer').textContent=s.toFixed(1)+' s';if(st.flash&&s>5&&dcur&&!dcur.answered)$('#d-cover').hidden=false},100)}
+function answerDrill(k){if(!dcur||dcur.answered)return;dcur.answered=true;clearInterval(dtimer);$('#d-cover').hidden=true;const ms=performance.now()-dstart,ok=k===dcur.key,s=dstat(dcur.key);
+ s.seen++;s.recent.push(ok);if(s.recent.length>8)s.recent.shift();if(ok){s.correct++;s.times.push(ms/1000);if(s.times.length>8)s.times.shift();st.streak=(st.streak||0)+1}else{st.streak=0;const p=dcur.key+'>'+k;st.conf[p]=(st.conf[p]||0)+1}
+ st.log=(st.log||[]).concat([{ok,t:ms/1000}]).slice(-30);save();
+ document.querySelectorAll('#d-answers .chip').forEach(b=>{b.disabled=true;if(b.dataset.k===dcur.key)b.classList.add('right');else if(b.dataset.k===k)b.classList.add('wrong')});
+ const r=RHY[dcur.key];let h=`<div class="verdict ${ok?'ok':'no'}"><b>${ok?'Correct':'It was '+r.n}</b> · <span class="mono">${(ms/1000).toFixed(1)} s</span>${ok&&ms>5000?'. Right; now aim for under 5 s.':''}<p style="margin:.35rem 0 0">${r.wave}</p></div>`;
+ if(!ok){const pk=RHY[k];h+=`<div class="section"><p class="label">${pk.n}, for comparison</p><div class="strip"><canvas id="cv-contrast"></canvas></div><div class="compare"><div><h3>${r.n}</h3><ul>${r.look.map(x=>`<li>${x}</li>`).join('')}</ul></div><div><h3>${pk.n}</h3><ul>${pk.look.map(x=>`<li>${x}</li>`).join('')}</ul></div></div></div>`}
+ h+=`<div class="row" style="margin-top:1rem"><button class="btn" id="d-next">Next strip</button><button class="btn ghost" id="d-why">See it in the heart</button></div>`;
+ $('#d-feedback').innerHTML=h;$('#d-next').onclick=nextDrill;$('#d-why').onclick=()=>{setMode('learn');loadRhythm(dcur.key)};
+ if(!ok){const sd=newSeed();drawStatic($('#cv-contrast'),make(preset(k,mkR(sd)),sd+1,.5))}
+ $('#d-next').focus({preventScroll:true});renderDrillStats()}
+function tint(c,a){return`color-mix(in srgb, ${c} ${a}%, var(--panel))`}
+function renderDrillStats(){const log=st.log||[];$('#s-acc').textContent=log.length?Math.round(100*log.filter(x=>x.ok).length/log.length)+'%':'–';
+ const ct=log.filter(x=>x.ok).map(x=>x.t);$('#s-time').textContent=ct.length?median(ct).toFixed(1)+'s':'–';$('#s-streak').textContent=st.streak||0;
+ $('#s-mastery').innerHTML=KEYS.map(k=>{const s=st.drill[k];const a=s&&s.recent.length?s.recent.filter(Boolean).length/s.recent.length:null;const bg=a==null?'var(--line)':tint(a>=.85?'var(--scrubs)':a>=.6?'var(--warn)':'var(--trace)',45);return`<div class="mcell" title="${RHY[k].n}${a==null?': not seen yet':': '+Math.round(a*100)+'% recently'}" style="background:${bg}">${RHY[k].s}</div>`}).join('');
+ const c=Object.entries(st.conf).sort((a,b)=>b[1]-a[1]).slice(0,5);$('#s-conf').innerHTML=c.length?c.map(([p,n])=>{const[a,b]=p.split('>');return`<li>${RHY[a].n} taken for ${RHY[b].n} <b>×${n}</b></li>`}).join(''):'<li style="list-style:none;margin-left:-1.1rem;color:var(--muted)">Nothing yet</li>'}
+$('#d-flash').checked=!!st.flash;$('#d-flash').onchange=e=>{st.flash=e.target.checked;save()};
+$('#s-reset').onclick=e=>{const b=e.currentTarget;if(b.dataset.armed){st.drill={};st.conf={};st.log=[];st.streak=0;st.sys={};save();renderDrillStats();renderSysStats();b.textContent='Reset my stats';delete b.dataset.armed}else{b.dataset.armed=1;b.textContent='Tap again to reset'}};
+document.addEventListener('keydown',e=>{if(curMode!=='drill'||e.target.tagName==='INPUT')return;if(dcur&&!dcur.answered&&/^[1-6]$/.test(e.key)){const k=dcur.opts[+e.key-1];if(k)answerDrill(k)}});
+
+/* ===== SYSTEMATIC ===== */
+let ycur=null,ylast=null,cal={a:null,b:null,march:false};
+const YMODES=[['adaptive','Adaptive'],['always','Always'],['off','Name only']];
+function renderYMode(){const b=$('#y-mode');b.innerHTML='';YMODES.forEach(([v,l])=>{const c=document.createElement('button');c.className='chip';c.textContent=l;c.setAttribute('aria-pressed',String(st.sysMode===v));c.onclick=()=>{st.sysMode=v;save();renderYMode();nextSys()};b.appendChild(c)});
+ $('#y-mode-note').textContent={adaptive:'Full checklist until you have three clean reads of a rhythm, then name it first.',always:'Full checklist every time. Best while learning the method.',off:'Name it straight away; the checklist comes back if you miss.'}[st.sysMode]}
+function ys(k){return st.sys[k]||(st.sys[k]={clean:0,runs:0})}
+function nextSys(){const P=pool();const key=weightedPick(P,k=>1+Math.max(0,3-ys(k).clean),ylast);ylast=key;const sd=newSeed();const out=make(preset(key,mkR(sd)),sd+1,.8);
+ const nameFirst=st.sysMode==='off'||(st.sysMode==='adaptive'&&ys(key).clean>=3);
+ ycur={key,out,T:truthFor(out),step:0,errs:0,nameFirst,phase:nameFirst?'name':'steps',answers:{}};cal={a:null,b:null,march:cal.march};drawSys();renderSteps()}
+function drawSys(){if(!ycur)return;drawStatic($('#cv-sys'),ycur.out,(ctx,G)=>{if(cal.a==null)return;const X=t=>t*25*G.ppm,c=css('--scrubs');ctx.strokeStyle=c;ctx.lineWidth=1.6;
+ const vl=(t,a)=>{ctx.globalAlpha=a;ctx.beginPath();ctx.moveTo(X(t),0);ctx.lineTo(X(t),G.H);ctx.stroke();ctx.globalAlpha=1};vl(cal.a,1);
+ if(cal.b!=null){vl(cal.b,1);const d=cal.b-cal.a;ctx.beginPath();ctx.moveTo(X(cal.a),10);ctx.lineTo(X(cal.b),10);ctx.stroke();
+  if(cal.march&&Math.abs(d)>.05){ctx.setLineDash([4,4]);for(let t=cal.b+d;t>=0&&t<=DUR;t+=d)vl(t,.6);for(let t=cal.a-d;t>=0&&t<=DUR;t-=d)vl(t,.6);ctx.setLineDash([])}}});
+ const el=$('#y-cal');if(cal.a==null)el.textContent='Click two points';else if(cal.b==null)el.textContent='Click a second point';else{const d=Math.abs(cal.b-cal.a);el.innerHTML=`<b>${Math.round(d*1000)} ms</b> · ${(d/.04).toFixed(1)} small sq · <b>${d>.05?Math.round(60/d):'–'}</b>/min`}}
+$('#cv-sys').addEventListener('click',e=>{const G=$('#cv-sys')._G;if(!G)return;const r=e.currentTarget.getBoundingClientRect();const t=(e.clientX-r.left)/(25*G.ppm);if(cal.a==null||cal.b!=null)cal={a:t,b:null,march:cal.march};else cal.b=t;drawSys()});
+$('#y-march').onclick=()=>{cal.march=!cal.march;$('#y-march').setAttribute('aria-pressed',String(cal.march));drawSys()};
+$('#y-clear').onclick=()=>{cal={a:null,b:null,march:cal.march};drawSys()};
+function nameChips(onPick){const w=document.createElement('div');for(const g in GROUPS){const row=document.createElement('div');row.className='pgroup';row.innerHTML=`<span class="g">(${g}) ${GROUPS[g]}</span>`;const c=document.createElement('div');c.className='chips';
+ KEYS.filter(k=>RHY[k].g===g).forEach(k=>{const b=document.createElement('button');b.className='chip';b.dataset.k=k;b.textContent=RHY[k].n;b.onclick=()=>onPick(k,b);c.appendChild(b)});row.appendChild(c);w.appendChild(row)}return w}
+function renderSteps(){const box=$('#y-steps');box.innerHTML='';const y=ycur;
+ if(y.phase==='name'&&y.nameFirst){const s=document.createElement('div');s.className='step';s.innerHTML=`<h3><span class="n">Name first</span>What is this rhythm?</h3><p class="small" style="margin:0 0 .4rem">${st.sysMode==='off'?'Checklist off.':'You have read this one cleanly '+ys(y.key).clean+' times.'} Miss it and the checklist comes back.</p>`;
+  s.appendChild(nameChips((k,b)=>{if(y.done)return;if(k===y.key){b.classList.add('right');finishSys(true)}else{b.classList.add('wrong');y.nameFirst=false;y.phase='steps';y.errs++;y.missName=k;setTimeout(renderSteps,450)}}));box.appendChild(s);return}
+ if(y.missName){const n=document.createElement('div');n.className='hint';n.textContent=`Not ${RHY[y.missName].n}. Work through it step by step.`;box.appendChild(n)}
+ STEPS.forEach((S,i)=>{const s=document.createElement('div');s.className='step'+(i>y.step?' locked':'');
+  if(i<y.step){const lab=S.opts.find(o=>o[0]===y.answers[S.id])[1];s.innerHTML=`<h3><span class="n">${i+1}</span>${S.q} <span class="done">✓ ${lab}</span></h3>`;box.appendChild(s);return}
+  s.innerHTML=`<h3><span class="n">${i+1}</span>${S.q}</h3>`;const c=document.createElement('div');c.className='chips';
+  S.opts.forEach(([v,l])=>{const b=document.createElement('button');b.className='chip';b.textContent=l;b.onclick=()=>{if(i!==y.step)return;
+   if(accepts(y.T,S.id,v)){y.answers[S.id]=v;y.step++;renderSteps()}else{b.classList.add('wrong');b.disabled=true;y.errs++;if(!s.querySelector('.hint')){const h=document.createElement('div');h.className='hint';h.textContent=S.hint;s.appendChild(h)}}};c.appendChild(b)});
+  s.appendChild(c);box.appendChild(s)});
+ if(y.step>=STEPS.length){const s=document.createElement('div');s.className='step';s.innerHTML=`<h3><span class="n">7</span>Name it</h3>`;s.appendChild(nameChips((k,b)=>{if(y.done)return;if(k===y.key){b.classList.add('right');finishSys(false)}else{b.classList.add('wrong');y.errs++}}));box.appendChild(s)}}
+function finishSys(viaName){const y=ycur;y.done=true;const s=ys(y.key);s.runs++;const clean=y.errs===0;if(clean&&!viaName)s.clean++;if(!clean)s.clean=Math.max(0,s.clean-1);save();renderSysStats();
+ const r=RHY[y.key];const d=document.createElement('div');d.className='verdict '+(clean?'ok':'no');
+ d.innerHTML=`<b>${r.n}.</b> ${clean?(viaName?'Named on sight.':'Clean read, '+s.clean+' of 3 toward name-first.'):'Finished with '+y.errs+' slip'+(y.errs>1?'s':'')+'; clean reads drop by one.'}<p style="margin:.35rem 0 0">${r.wave}</p><div class="row" style="margin-top:.75rem"><button class="btn" id="y-next">Next strip</button><button class="btn ghost" id="y-why">See it in the heart</button></div>`;
+ $('#y-steps').appendChild(d);$('#y-next').onclick=nextSys;$('#y-why').onclick=()=>{setMode('learn');loadRhythm(y.key)}}
+function renderSysStats(){$('#y-mastery').innerHTML=KEYS.map(k=>{const s=st.sys[k];const c=s?s.clean:0;const bg=!s||!s.runs?'var(--line)':tint(c>=3?'var(--scrubs)':c>0?'var(--warn)':'var(--trace)',45);return`<div class="mcell" title="${RHY[k].n}: ${c} clean" style="background:${bg}">${RHY[k].s}</div>`}).join('')}
+
+/* ===== modes ===== */
+let curMode=null;
+const MODES=['learn','drill','systematic'];
+function setMode(m){if(!MODES.includes(m))m='learn';if(m===curMode)return;curMode=m;
+ for(const k of MODES){$('#mode-'+k).hidden=k!==m;const t=$('#tab-'+k);if(k===m)t.setAttribute('aria-current','page');else t.removeAttribute('aria-current')}
+ try{if(location.hash.slice(1)!==m)location.hash=m}catch(e){}
+ if(m==='learn'){if(!lout)loadRhythm('nsr');else learnFrame();startLearn()}
+ if(m==='drill'){if(!dcur)nextDrill();else drawStatic($('#cv-drill'),dcur.out);renderDrillStats()}
+ if(m==='systematic'){if(!ycur)nextSys();else drawSys();renderSysStats()}}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+addEventListener('hashchange',()=>{let m='';try{m=location.hash.slice(1)}catch(e){}if(MODES.includes(m))setMode(m)});
+let rt;function redrawAll(){lGrid=null;if(curMode==='learn'&&lout)learnFrame();if(curMode==='drill'&&dcur){drawStatic($('#cv-drill'),dcur.out);const c=$('#cv-contrast');if(c&&c._out)drawStatic(c,c._out)}if(curMode==='systematic')drawSys()}
+addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(redrawAll,150)});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+renderLearnControls();renderRhythmPicker('#l-rhythms',k=>{loadRhythm(k);if(!reduce){lplay=true;$('#l-play').textContent='Pause'}});renderFilters();renderYMode();
+if(reduce)$('#l-play').textContent='Play';
+let startM='learn';try{startM=location.hash.slice(1)}catch(e){}
+setMode(MODES.includes(startM)?startM:'learn');
+</script>
+
+</body>
+</html>

@@ -148,6 +148,7 @@ a.tile:focus-visible .art svg { transform: rotate(-3deg) scale(1.04); }
 .art-ing { background: #34407A; }
 .art-ct { background: #1E2A33; }
 .art-eye { background: #34508F; }
+.art-ecg { background: #1D2340; }
 .art-soon {
   border: 2px dashed var(--line);
   background: color-mix(in srgb, var(--panel) 60%, transparent);
